@@ -88,7 +88,7 @@ You also need **Google Chrome** installed, since the tests run in Chrome by defa
 
 1. Open a terminal and navigate to the folder where you downloaded this project:
    ```
-   cd "path/to/BESTUS"
+   cd "path/to/ecommerce-qa-test-suite"
    ```
 
 2. Install the project's dependencies (this downloads Cypress and other tools):

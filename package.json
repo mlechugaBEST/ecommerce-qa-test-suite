@@ -1,4 +1,6 @@
 {
+  "name": "ecommerce-qa-test-suite",
+  "private": true,
   "scripts": {
     "test": "cypress run --browser chrome",
     "test:open": "cypress open --browser chrome",

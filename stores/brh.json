@@ -1,0 +1,186 @@
+{
+  "_notes": "Configured June 2026. Standard BigCommerce theme (ul.productGrid, h1.page-heading). No SearchSpring — native BC sort/search. Native BC search always returns results (full catalog for any term) — no zero-result state. Quote-only catalog (no prices, no cart, no qty input, no lead-time). Mobile nav is #mySidenav. Mobile breadcrumbs hidden. Footer root is plain <footer> (no .tcsFooter). No .Contact-info-box — contact info in footer .box:last-child. No payment icons. PLP at /aluminum/. Sidebar is .sidebarBlock. No subcategory tiles. PDP: no qty steppers, no carousel, no Yotpo, no SS recently-viewed. KNOWN SITE DEFICIENCY (test intentionally failing): products have no SKU set in BigCommerce admin — seo.cy.js JSON-LD Product block test fails. BRH admin must add SKUs (model numbers) to products. KNOWN SITE DEFICIENCY (test intentionally failing, verified July 28 2026 via direct HTML fetch): 2 of 15 pdp.popular products carry no spec-sheet PDF — /4-0-x-4-0-ee-single-leaf-roof-hatch-galvanized-steel-cover-and-curb-milcor/ and /24-x-38-fixed-deck-mounted-skylight-laminated-glass-fakro/ (the other 13 each have 1 PDF), so pdp.cy.js 'spec sheet links open PDFs in a new tab' (requires >=1 .pdf per PDP) fails ~13% of runs when the random pick lands on one — same deficiency class as CAD. This only became visible once the theme-error wrap let pdp.cy.js run past before-all. BRH admin must upload the manufacturer spec sheets for those 2 products in BigCommerce admin. Do NOT pin/exclude them from pdp.popular — that would mask the gap (site-deficiency policy). LIGHTHOUSE (calibrated July 2 2026, live scores homepage a11y 85 / plp 86 / pdp 79): all clear the fleet-wide accessibility:60 floor (no per-store override). KNOWN DEFICIENCY: homepage performance scored 42 vs the 50 floor (heavy content, fixable, not theme-structural) -> homepage Lighthouse test intentionally left failing; BRH devs must reduce homepage weight. KNOWN THEME BUGS (verified July 27-28 2026): the theme has MULTIPLE first-party bugs in its jQuery document-ready callbacks that throw on BRH pages (they fire for real users too): (1) heading-iteration JS calls .trim() on an undefined value ('Cannot read properties of undefined (reading trim)'), and (2) a ready callback calls $(...) when $ is not a function ('$ is not a function'). jQuery processes .ready()/Deferred callbacks asynchronously via window.setTimeout, and a throw inside one propagates out of that timer as an uncaught error that — confirmed live over several runs — never reaches the uncaught:exception handler in any suppressible way (not by message, not by stack, not via a capture-phase error listener). So they are prevented at the source: e2e.js registers a Cypress.on('window:before:load') that wraps the BRH window's setTimeout and swallows any throw whose stack shows the jQuery+bestroofhatches.com ready channel (code.jquery.com frames AND a bestroofhatches.com theme-callback frame). This is scoped by stack to exactly that channel, so it covers trim, '$ is not a function', and any further ready-callback bug in this theme without masking unrelated errors — and it lets the PDP/discovery/images suites actually run their assertions instead of dying in before-all. Temporary; BRH devs must fix the theme's document-ready scripts, then remove the wrap. Note: these surfaced only because commit d05ca7a replaced the old blanket uncaught:exception () => false (which swallowed everything) with a scoped handler; BRH ran 'green' before only because the blanket handler hid them. Also: Klaviyo email-capture popup is loaded (store-functional) and its telemetry fetch fails under Cypress, throwing an unhandled 'Failed to fetch' rejection → suppressed as third-party noise via KNOWN_BUGGY_SCRIPTS messagePattern /Failed to fetch/ (matched by message not stack because a fetch-rejection TypeError has a frameless stack in Chrome) + DEFAULT_IGNORE 'klaviyo' for the console-spy line (checks.js). Also: 1.door-pay.com tax-exempt form widget (bc_tax_exempt_form_load.js) throws 'setting hostUrl' on every BRH page load and is now blocked via THIRD_PARTY_HOSTS (door-pay.com) — vendor script bug, not ours.",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.proClub",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no Pro Club program on live site (June 2026 onboarding)",
+      "enables": "pro-club-form.cy.js"
+    },
+    {
+      "configKey": "forms.becomeVendor",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no become-a-vendor page on live site (June 2026 onboarding)",
+      "enables": "become-vendor-form.cy.js"
+    },
+    {
+      "configKey": "forms.architectInquiries",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no /architects/ page on live site (June 2026 onboarding)",
+      "enables": "architect-form.cy.js"
+    },
+    {
+      "configKey": "plp.subcategory",
+      "fillWith": "\"/<parent-category>/<child-category>/\"",
+      "verifiedAbsent": "flat category taxonomy - no child categories exist (June 2026 onboarding)",
+      "enables": "plp.cy.js subcategory suite"
+    },
+    {
+      "configKey": "discovery.search.noResultsTerm",
+      "fillWith": "\"zzzz-no-products-987654321\"",
+      "verifiedAbsent": "native BC search always returns results - no zero-result state exists; fill only if store adopts a search engine with a no-results page",
+      "enables": "discovery.cy.js no-results test"
+    }
+  ],
+  "storeCode": "BRH",
+  "baseUrl": "https://bestroofhatches.com",
+  "homePath": "/",
+  "visitQuery": null,
+  "branding": {
+    "copyrightText": "Best Roof Hatches",
+    "footerLocationText": "San Francisco",
+    "warehousesLink": {
+      "href": "/warehouses/",
+      "text": "Warehouses"
+    },
+    "imageHosts": ["bestroofhatches.com", "bigcommerce.com"],
+    "partnerLinks": null,
+    "mobileNavSelector": "#mySidenav",
+    "footer": {
+      "rootSelector": "footer",
+      "sections": [
+        "footer .footer-top",
+        "footer .footer-bottom",
+        "footer .Copyright"
+      ],
+      "headingSelector": "footer .box h3",
+      "headings": [
+        "What's In Store",
+        "SECURE SHOPPING",
+        "My Account",
+        "Contact Info"
+      ],
+      "navLinks": "footer .box ul li a",
+      "contactInfoBox": "footer .box:last-child",
+      "minContactBoxes": 1,
+      "phoneLinks": "footer a[href^=\"tel:\"]",
+      "minPhoneLinks": 2,
+      "copyright": "footer .Copyright p",
+      "paymentIcons": null
+    }
+  },
+  "plp": {
+    "main": "/aluminum/",
+    "mainHeading": "Aluminum",
+    "breadcrumbLabel": "Aluminum",
+    "subcategory": null,
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": null,
+      "sidebar": ".sidebarBlock",
+      "sidebarBlocks": ".sidebarBlock",
+      "sidebarBlocksMin": 1,
+      "sidebarLinks": ".sidebarBlock a",
+      "bestSellers": ".sidebarBlock a[href*=\"best-sellers\"]",
+      "subcategoryBox": null,
+      "cardPrice": null,
+      "pagination": {
+        "container": ".pagination-list",
+        "active": ".pagination-item--current",
+        "links": "li.pagination-item a",
+        "next": ".pagination-item--next a",
+        "pageTwoToken": "page=2"
+      }
+    }
+  },
+  "products": {
+    "default": "/66-x-144-aluminum-quad-door-lightmax-smoke-vent-polycarb-dome-rooftop-close/",
+    "known": [
+      "/66-x-144-aluminum-quad-door-lightmax-smoke-vent-polycarb-dome-rooftop-close/",
+      "/66-x-144-galvanized-steel-quad-door-acousticmax-50-smoke-vent-manual-winch/",
+      "/66-x-144-galvanized-steel-quad-door-acousticmax-50-smoke-vent-rooftop-close-with-electrical-opening-mechanism/",
+      "/30-x-54-aluminum-ship-stair-access-roof-hatch-bilco/",
+      "/36-x-36-aluminum-ladder-access-roof-hatch-bilco/",
+      "/36-x-30-thermally-broken-domed-roof-hatch-bilco/",
+      "/4-0-x-4-0-ee-single-leaf-roof-hatch-galvanized-steel-cover-and-curb-milcor/",
+      "/3-0-x-3-0-ee-single-leaf-roof-hatch-galvanized-steel-cover-and-curb-milcor/",
+      "/36-x-30-galvanized-steel-miami-dade-approved-roof-hatch-bilco/",
+      "/24-x-38-fixed-deck-mounted-skylight-laminated-glass-fakro/",
+      "/36-x-30-thermally-broken-ladder-access-roof-hatch-type-s-bilco/",
+      "/30-x-36-roof-access-hatch-elmdor/",
+      "/24-x-36-roof-access-hatch-elmdor/",
+      "/30-x-54-galvanized-steel-versamount-roof-hatch-bilco/",
+      "/36-x-30-aluminum-double-domed-roof-hatch-bilco/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BRHProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/request-a-quote/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BRHRequestAQuote/**/submit",
+      "optionalFields": ["Name_First"]
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BRHContactUsNew/**/submit"
+    },
+    "proClub": null,
+    "becomeVendor": null,
+    "architectInquiries": null
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "roof hatch",
+      "expectedTokens": ["roof", "hatch"],
+      "noResultsTerm": null,
+      "pdpUrlClean": false
+    },
+    "categories": ["/aluminum/", "/galvanized-steel/", "/ladder-access/", "/bilco/", "/smoke-vents/", "/domed/", "/miami-dade/", "/shop-by-size/"],
+    "mobileCategory": "/aluminum/",
+    "multiPageCategory": "/aluminum/",
+    "sort": {
+      "category": "/aluminum/",
+      "label": "Price: Ascending",
+      "urlHash": null,
+      "queryParam": "sort",
+      "queryValue": "priceasc"
+    }
+  },
+  "pdp": {
+    "recentlyViewedProfile": null,
+    "quoteOnly": true,
+    "mobileBreadcrumbsHidden": true,
+    "popular": [
+      "/66-x-144-aluminum-quad-door-lightmax-smoke-vent-polycarb-dome-rooftop-close/",
+      "/66-x-144-galvanized-steel-quad-door-acousticmax-50-smoke-vent-manual-winch/",
+      "/66-x-144-galvanized-steel-quad-door-acousticmax-50-smoke-vent-rooftop-close-with-electrical-opening-mechanism/",
+      "/30-x-54-aluminum-ship-stair-access-roof-hatch-bilco/",
+      "/36-x-36-aluminum-ladder-access-roof-hatch-bilco/",
+      "/36-x-30-thermally-broken-domed-roof-hatch-bilco/",
+      "/4-0-x-4-0-ee-single-leaf-roof-hatch-galvanized-steel-cover-and-curb-milcor/",
+      "/3-0-x-3-0-ee-single-leaf-roof-hatch-galvanized-steel-cover-and-curb-milcor/",
+      "/36-x-30-galvanized-steel-miami-dade-approved-roof-hatch-bilco/",
+      "/24-x-38-fixed-deck-mounted-skylight-laminated-glass-fakro/",
+      "/36-x-30-thermally-broken-ladder-access-roof-hatch-type-s-bilco/",
+      "/30-x-36-roof-access-hatch-elmdor/",
+      "/24-x-36-roof-access-hatch-elmdor/",
+      "/30-x-54-galvanized-steel-versamount-roof-hatch-bilco/",
+      "/36-x-30-aluminum-double-domed-roof-hatch-bilco/"
+    ],
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": null,
+      "galleryImage": "section[data-image-gallery] img",
+      "description": ".productView-description",
+      "relatedCarousel": null,
+      "reviewsContainer": null,
+      "qtyIncrement": null,
+      "qtyDecrement": null
+    }
+  }
+}

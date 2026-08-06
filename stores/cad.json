@@ -1,0 +1,199 @@
+{
+  "_notes": "Configured June 2026. Standard BigCommerce theme (ul.productGrid, h1.page-heading, .breadcrumbs). No SearchSpring — native BC sort (?sort=priceasc) and search (search.php). Native BC search always returns results — no zero-result state. Products have prices (not quote-only). Footer: plain <footer> (no .tcsFooter), three sibling sections (footer-top / footer-bottom / footer-copyright), h3 headings in .box divs. Mobile nav is #menu (native BC toggle container). No sidebar on category pages. Subcategory boxes use li.subcategory_box / a.nameTitle / a.subcategory_image. PDP: #zoho_product_form for product info form, section[data-image-gallery] img for gallery, .productView-description for description. No related carousel, no Yotpo reviews, no SS recently-viewed. KNOWN SITE DEFICIENCY (test intentionally failing — CAD admin notified July 22 2026): 11 of 20 pdp.popular products have NO spec-sheet PDF (no a[href*='.pdf'] on the page), so pdp.cy.js 'spec sheet links open PDFs in a new tab' (which requires >=1 PDF on every PDP) fails whenever the random PDP pick lands on one of them (~55% of runs). Verified real, not a catalog quirk: the SAME products on ADC (sister store, same catalog) DO carry the spec sheet — e.g. /60-x-48-lightweight-aluminum-access-door-double-leaf-acudor/ and /24-x-36-insulated-aluminum-access-door-cendrex/ each have 1 PDF on ADC but 0 on CAD. CAD admin must upload the manufacturer spec-sheet PDFs to these products in BigCommerce admin. PDF-less pdp.popular slugs: /60-x-48-lightweight-aluminum-access-door-double-leaf-acudor/, /12-x-24-recessed-ceiling-or-wall-access-door-for-plaster-mifab/, /22-x-30-fire-rated-insulated-upward-opening-ceiling-door-cendrex/, /24-x-36-insulated-aluminum-access-door-cendrex/, /24-x-24-removeable-floor-door-1-8-recess-for-vinyl-tile-carpet-acudor/, /24-x-24-removeable-floor-door-1-recess-for-ceramic-tile-concrete-acudor/, /24-x-24-fire-rated-ceiling-access-doors/, /18-x-36-drywall-access-door/, /24-x-36-lightweight-aluminum-access-door-acudor/, /12-x-24-ct-concealed-frame-access-panel-with-recessed-door-for-acoustical-tile-or-wallboard-insert-jl-industries/.",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.proClub",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no Pro Club program on live site (June 2026 onboarding)",
+      "enables": "pro-club-form.cy.js"
+    },
+    {
+      "configKey": "forms.becomeVendor",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no become-a-vendor page on live site (June 2026 onboarding)",
+      "enables": "become-vendor-form.cy.js"
+    },
+    {
+      "configKey": "discovery.search.noResultsTerm",
+      "fillWith": "\"zzzz-no-products-987654321\"",
+      "verifiedAbsent": "native BC search always returns results - no zero-result state exists; fill only if store adopts a search engine with a no-results page",
+      "enables": "discovery.cy.js no-results test"
+    }
+  ],
+  "storeCode": "CAD",
+  "baseUrl": "https://www.californiaaccessdoors.com",
+  "homePath": "/",
+  "visitQuery": null,
+  "branding": {
+    "copyrightText": "California Access Doors",
+    "footerLocationText": "San Francisco",
+    "warehousesLink": {
+      "href": "/warehouses/",
+      "text": "WAREHOUSES"
+    },
+    "imageHosts": [
+      "californiaaccessdoors.com",
+      "bigcommerce.com"
+    ],
+    "partnerLinks": null,
+    "mobileNavSelector": "#menu",
+    "footer": {
+      "rootSelector": "footer",
+      "sections": [
+        "footer .footer-top",
+        "footer .footer-bottom",
+        "footer .footer-copyright"
+      ],
+      "headingSelector": "footer .box h3",
+      "headings": [
+        "WHAT'S IN STORE",
+        "SECURE SHOPPING",
+        "MY ACCOUNT",
+        "CONTACT INFO"
+      ],
+      "navLinks": "footer .box ul li a",
+      "contactInfoBox": "footer .box:last-child",
+      "minContactBoxes": 1,
+      "phoneLinks": "footer a[href^=\"tel:\"]",
+      "minPhoneLinks": 2,
+      "copyright": "footer .footer-copyright p",
+      "paymentIcons": "footer .footer-payment-icons"
+    }
+  },
+  "plp": {
+    "main": "/fire-rated-access-doors/",
+    "mainHeading": "Fire-Rated",
+    "breadcrumbLabel": "Fire-Rated",
+    "subcategory": "/for-drywall-installation/",
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": null,
+      "sidebar": null,
+      "bestSellers": null,
+      "subcategoryBox": "li.subcategory_box",
+      "subcategoryLink": "a.subcategory_image",
+      "cardPrice": ".price--withoutTax",
+      "pagination": {
+        "container": ".pagination-list",
+        "active": ".pagination-item--current",
+        "links": "li.pagination-item a",
+        "next": ".pagination-item--next a",
+        "pageTwoToken": "page=2"
+      }
+    }
+  },
+  "products": {
+    "default": "/36-x-48-fire-rated-insulated-access-door-with-flange-for-drywall/",
+    "known": [
+      "/12-x-12-virtually-invisible-access-panel-bauco/",
+      "/60-x-48-lightweight-aluminum-access-door-double-leaf-acudor/",
+      "/24-x-24-virtually-invisible-access-panel-bauco/",
+      "/36-x-48-fire-rated-insulated-access-door-with-flange-for-drywall/",
+      "/12-x-24-recessed-ceiling-or-wall-access-door-for-plaster-mifab/",
+      "/22-x-30-fire-rated-insulated-upward-opening-ceiling-door-cendrex/",
+      "/24-x-30-fire-rated-floor-hatch-acudor/",
+      "/24-x-36-insulated-aluminum-access-door-cendrex/",
+      "/24-x-24-removeable-floor-door-1-8-recess-for-vinyl-tile-carpet-acudor/",
+      "/24-x-24-removeable-floor-door-1-recess-for-ceramic-tile-concrete-acudor/",
+      "/36-x-36-fire-rated-insulated-access-door-with-flange-for-drywall/",
+      "/24-x-24-drywall-inlay-access-panel-with-drywall-flange-detachable/",
+      "/22-x-30-drywall-inlay-access-panel-with-fully-detachable-hatch/",
+      "/24-x-24-fire-rated-ceiling-access-doors/",
+      "/30-x-30-fire-rated-insulated-access-door-with-flange-for-drywall/",
+      "/48-x-48-fire-rated-floor-hatch-acudor/",
+      "/18-x-36-drywall-access-door/",
+      "/24-x-36-lightweight-aluminum-access-door-acudor/",
+      "/12-x-24-ct-concealed-frame-access-panel-with-recessed-door-for-acoustical-tile-or-wallboard-insert-jl-industries/",
+      "/22-x-30-lead-lined-access-door-karp/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/CADProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/quote-request/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/CADRequestAQuote/**/submit",
+      "optionalFields": [
+        "Name_First"
+      ]
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/CADContactUsNew/**/submit"
+    },
+    "proClub": null,
+    "becomeVendor": null,
+    "architectInquiries": {
+      "path": "/architects/",
+      "submitUrlPattern": "**/forms.zohopublic.com/**/CADArchitects/**/submit"
+    }
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "fire rated access door",
+      "expectedTokens": [
+        "fire",
+        "rated",
+        "access",
+        "door"
+      ],
+      "noResultsTerm": null,
+      "pdpUrlClean": false
+    },
+    "categories": [
+      "/fire-rated-access-doors/",
+      "/ceiling-attic-access-doors/",
+      "/drywall-access-doors/",
+      "/floor-access-hatches/",
+      "/duct-access-doors/",
+      "/security-access-doors-2/"
+    ],
+    "mobileCategory": "/fire-rated-access-doors/",
+    "multiPageCategory": "/fire-rated-access-doors/",
+    "sort": {
+      "category": "/fire-rated-access-doors/",
+      "label": "Price: Ascending",
+      "urlHash": null,
+      "queryParam": "sort",
+      "queryValue": "priceasc"
+    }
+  },
+  "pdp": {
+    "recentlyViewedProfile": null,
+    "popular": [
+      "/12-x-12-virtually-invisible-access-panel-bauco/",
+      "/60-x-48-lightweight-aluminum-access-door-double-leaf-acudor/",
+      "/24-x-24-virtually-invisible-access-panel-bauco/",
+      "/36-x-48-fire-rated-insulated-access-door-with-flange-for-drywall/",
+      "/12-x-24-recessed-ceiling-or-wall-access-door-for-plaster-mifab/",
+      "/22-x-30-fire-rated-insulated-upward-opening-ceiling-door-cendrex/",
+      "/24-x-30-fire-rated-floor-hatch-acudor/",
+      "/24-x-36-insulated-aluminum-access-door-cendrex/",
+      "/24-x-24-removeable-floor-door-1-8-recess-for-vinyl-tile-carpet-acudor/",
+      "/24-x-24-removeable-floor-door-1-recess-for-ceramic-tile-concrete-acudor/",
+      "/36-x-36-fire-rated-insulated-access-door-with-flange-for-drywall/",
+      "/24-x-24-drywall-inlay-access-panel-with-drywall-flange-detachable/",
+      "/22-x-30-drywall-inlay-access-panel-with-fully-detachable-hatch/",
+      "/24-x-24-fire-rated-ceiling-access-doors/",
+      "/30-x-30-fire-rated-insulated-access-door-with-flange-for-drywall/",
+      "/48-x-48-fire-rated-floor-hatch-acudor/",
+      "/18-x-36-drywall-access-door/",
+      "/24-x-36-lightweight-aluminum-access-door-acudor/",
+      "/12-x-24-ct-concealed-frame-access-panel-with-recessed-door-for-acoustical-tile-or-wallboard-insert-jl-industries/",
+      "/22-x-30-lead-lined-access-door-karp/"
+    ],
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": null,
+      "galleryImage": "section[data-image-gallery] img",
+      "description": ".productView-description",
+      "productInfoForm": "#zoho_product_form",
+      "relatedCarousel": null,
+      "reviewsContainer": null
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(node *)",
+      "Bash(npx cypress *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(curl -s *)",
+      "WebFetch(domain:www.bestaccessdoors.com)",
+      "WebFetch(domain:www.bestaccessdoors.com)",
+      "WebFetch(domain:www.acudoraccesspanels.com)",
+      "WebFetch(domain:www.californiaaccessdoors.com)",
+      "WebFetch(domain:www.bestroofhatches.com)",
+      "WebFetch(domain:www.puertasdeacceso.com.mx)",
+      "WebFetch(domain:www.firesafetyequipment.com)",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__*"
+    ]
+  }
+}

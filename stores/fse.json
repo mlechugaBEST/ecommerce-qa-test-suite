@@ -1,0 +1,201 @@
+{
+  "_notes": "Configured June 2026. FSE runs the SearchSpring Snap theme (ul.ss__results dual-classed with productGrid, .ss__pagination, select-based sort control). Header is .site-header (not semantic <header>). PLP heading is h1.simple-heading. Sidebar uses aside.page-sidebar/.sidebarBlock (no #treeView). Subcategory boxes (.subCategoriesBox) use BESTUS-default .nameTitle / a.navList-action inner selectors. PDP description tab is #tab-description; product info form is #have_a_product_question (without _request suffix). No related carousel. No SS recently-viewed script. Footer is .site-footer: nav links are direct <a> children of .box (no ul/li), copyright is in .Copyright p (sibling of .footer-bottom, not inside it). Mobile breadcrumbs hidden (display:none) — mobileBreadcrumbsHidden:true. No pro-club, become-vendor, or architects form. KNOWN SITE DEFICIENCIES (tests intentionally failing — devs notified June 17 2026): (1) /new-home/ has no <meta name='description'> — SEO test 'has a non-empty meta description' fails; add meta description to the page in BigCommerce admin. (2) grid-box-icon-1.jpg in section[data-image-gallery] has no alt attribute — images.cy.js 'all product gallery images have a non-empty alt attribute' fails; add alt text to the image in BigCommerce Media Manager. July 2 2026: applying the sort DOES hash-route to #/sort:calculated_price:asc (verified live) — discovery.sort.urlHash filled (was null). July 21 2026: FSE taxonomy is NOT flat — nested subcategory pages render (e.g. /fire-extinguishers/dry-chemical/, /fire-extinguisher-cabinets/recessed/, semi-recessed, carbon-dioxide). plp.subcategory filled to /fire-extinguishers/dry-chemical/ — a child of plp.main (/fire-extinguishers/) so its breadcrumb trail carries the 'Fire Extinguishers' parent link the subcategory suite asserts (breadcrumbLabel); stale _absentFeatures flat-taxonomy entry removed. Subcategory suite verified green live (heading, 'Fire Extinguishers' breadcrumb link, grid products, sidebar) — 3 consecutive passes July 21 2026. LIGHTHOUSE SEO NOTE (updated July 22 2026): the homepage Lighthouse SEO score is 67, which CLEARS the current fleet-wide seo:65 floor, so the Lighthouse audit does NOT fail on SEO. Deficiency #1 (missing /new-home/ meta description) surfaces only via the seo.cy.js DOM assertion 'has a non-empty meta description', not Lighthouse. (Earlier notes referencing a 90/75 SEO floor were stale — the floor is 65.) LIGHTHOUSE (calibrated July 2 2026, live scores homepage a11y 82 / plp 75 / pdp 71): plp/pdp structurally below a healthy a11y score, but all clear the fleet-wide accessibility:60 floor (no per-store override). Homepage Lighthouse SEO scores 67, which clears the seo:65 floor (passes); the missing meta description (deficiency #1) fails only the seo.cy.js DOM assertion. KNOWN SITE DEFICIENCY #3 (devs notified July 21 2026; team chose to keep as-is July 22 2026, so the mobile touch-target tests are now SKIPPED via branding.skipTouchTarget:true — sanctioned team-decision exception): at mobile widths (verified live at 393px CSS via device emulation), the tallest interactive header element is the logo link a.header-logo__link at 42.98px — 1px below the 44px WCAG touch-target minimum — so homepage.mobile.cy.js 'interactive header elements meet minimum touch target height (44px)' fails on phones. The header logo image is HTML-commented-out in the theme markup, so the link box height comes purely from CSS. Fix: add min-height:44px (and display:flex/align-items:center) to a.header-logo__link in the FSE Snap theme; same touch-target class as the AAP deficiency, far milder (AAP hamburger was 23px). July 21 2026: dropped discovery.categories '/jl-industries/' — its 3rd product card is a quote-only item with no price element, which breaks the PLP-grade assertProductCards price check on discovery category pages (kept /potter-roemer/ and the 12 other cats, all verified live with priced+imaged first 3 cards). July 29 2026 — SearchSpring Snap card-click throw: clicking a PLP product card triggers `t.isImmediatePropagationStopped is not a function` thrown from SearchSpring's cross-origin Snap bundle (snapui.searchspring.io, store-functional, deliberately left loaded). Because it's cross-origin the browser redacts it (window.onerror 'Script error.'), and under Cypress it arrives as an unhandled rejection with a non-Error reject value that Cypress wraps as 'An unknown error has occurred: [object Object]' — which failed plp.cy.js 'clicking a product card navigates to the PDP'. Diagnosed live via chrome-devtools (no rejection on load; fires only on card click; site still works because the card href navigates). It surfaced when commit aedddf9 narrowed the uncaught:exception handler from the old blanket () => false. Not an FSE-fixable defect (SearchSpring's cross-origin code). Suppressed in cypress/support/e2e.js by extending the redacted-cross-origin arm to also match Cypress's opaque-rejection wrapper (/an unknown error has occurred/i) — the rejection-shaped equivalent of the existing 'cross origin script' suppression.",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.proClub",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no Pro Club program on live site (June 2026 onboarding)",
+      "enables": "pro-club-form.cy.js"
+    },
+    {
+      "configKey": "forms.becomeVendor",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no become-a-vendor page on live site (June 2026 onboarding)",
+      "enables": "become-vendor-form.cy.js"
+    },
+    {
+      "configKey": "forms.architectInquiries",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no /architects/ page on live site (June 2026 onboarding)",
+      "enables": "architect-form.cy.js"
+    }
+  ],
+  "storeCode": "FSE",
+  "baseUrl": "https://firesafetyequipment.com",
+  "homePath": "/new-home/",
+  "visitQuery": null,
+  "branding": {
+    "copyrightText": "Fire Safety Equipment",
+    "footerLocationText": null,
+    "warehousesLink": null,
+    "imageHosts": [
+      "firesafetyequipment.com",
+      "bigcommerce.com"
+    ],
+    "partnerLinks": null,
+    "headerSelector": ".site-header",
+    "skipTouchTarget": true,
+    "footer": {
+      "rootSelector": ".site-footer",
+      "sections": [
+        ".site-footer .footer-top",
+        ".site-footer .footer-bottom"
+      ],
+      "headingSelector": ".site-footer .footer-top h3",
+      "headings": [
+        "WHAT’s In store",
+        "Secure shopping",
+        "my account",
+        "contact info"
+      ],
+      "navLinks": ".site-footer .box a",
+      "contactInfoBox": ".site-footer .Contact-info-box",
+      "minContactBoxes": 1,
+      "phoneLinks": ".site-footer a[href^=\"tel:\"]",
+      "minPhoneLinks": 2,
+      "copyright": ".site-footer .Copyright p",
+      "paymentIcons": ".site-footer .footer-bottom .payment-icon"
+    }
+  },
+  "plp": {
+    "main": "/fire-extinguishers/",
+    "mainHeading": "Fire Extinguishers",
+    "breadcrumbLabel": "Fire Extinguishers",
+    "subcategory": "/fire-extinguishers/dry-chemical/",
+    "selectors": {
+      "heading": "h1.simple-heading",
+      "breadcrumbs": "ol.breadcrumbs",
+      "breadcrumbHome": "a.breadcrumb-label",
+      "sidebar": "aside.page-sidebar",
+      "sidebarBlocks": ".sidebarBlock",
+      "sidebarBlocksMin": 1,
+      "sidebarLinks": "aside a.navList-action",
+      "bestSellers": "aside a.navList-action",
+      "subcategoryBox": ".subCategoriesBox",
+      "productCard": "ul.ss__results li.product",
+      "pagination": {
+        "container": ".ss__pagination",
+        "active": ".pagination-item--current",
+        "links": "a.ss__pagination__link",
+        "next": ".ss__pagination__next a",
+        "pageTwoToken": "page=2"
+      }
+    }
+  },
+  "products": {
+    "default": "/10-lb-cosmic-extinguisher-multi-purpose-dry-chemical-jl-industries/",
+    "known": [
+      "/10-lb-cosmic-extinguisher-multi-purpose-dry-chemical-jl-industries/",
+      "/20-lb-cosmic-extinguisher-multi-purpose-dry-chemical-jl-industries/",
+      "/2-5-lb-cosmic-extinguisher-multi-purpose-dry-chemical-with-mark-bracket-jl-industries/",
+      "/9-x-18-x-4-loma-semi-recessed-2-fire-extinguisher-cabinet-aluminum-potter-roemer/",
+      "/16-x-32-x-7-75-academy-surface-mount-fire-extinguisher-cabinet/",
+      "/16-x-32-x-7-75-cosmopolitan-4-5a-a-a-rolled-fire-extinguisher-cabinet/",
+      "/9-x-24-x-5-alta-recessed-1-2-fire-extinguisher-cabinet-aluminum-potter-roemer/",
+      "/11.5-x-26.5-x-5.75-buena-full-acrylic-surface-fire-extinguisher-cabinet---potter-roemer/",
+      "/14-x-40-x-8-alta-recessed-5-8-valve-and-fire-extinguisher-cabinet-stainless-steel-potter-roemer/",
+      "/14x40x8-recessed-valve-and-extinguisher-detention-cabinet/",
+      "/22-x-36-fire-rated-insulated-access-panel-best-access-doors/",
+      "/24-x-24-fire-rated-insulated-access-panel-best-access-doors/",
+      "/36-x-36-fire-rated-access-panel-non-insulated-with-mud-in-flange-best-access-doors/",
+      "/66-x-144-automatic-fire-smoke-vent-aluminum-cover-and-steel-curb-bilco/",
+      "/60-x-72-aluminum-ul-listed-smoke-vent-double-leaf-acudor/",
+      "/48-x-90-automatic-fire-smoke-vent-steel-bilco/",
+      "/24-x-36-fire-rated-floor-hatch-acudor/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/FSEProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/request-a-quote/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/FSERequestAQuote/**/submit",
+      "optionalFields": [
+        "Name_First"
+      ]
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/FSEContactUsNew/**/submit"
+    },
+    "proClub": null,
+    "becomeVendor": null,
+    "architectInquiries": null
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "fire extinguisher",
+      "expectedTokens": [
+        "fire",
+        "extinguisher"
+      ],
+      "noResultsTerm": "zzzz-no-products-987654321",
+      "resultsHaveHeading": true
+    },
+    "categories": [
+      "/fire-extinguishers/",
+      "/potter-roemer/",
+      "/fire-extinguisher-cabinets/",
+      "/fire-extinguishers/dry-chemical/",
+      "/fire-extinguisher-cabinets/semi-recessed/",
+      "/fire-rated-floor-hatches/",
+      "/fire-rated-access-doors/",
+      "/fire-extinguisher-cabinets/recessed/",
+      "/smoke-vents/",
+      "/fire-blankets-and-cabinets/",
+      "/fire-extinguishers/carbon-dioxide/",
+      "/best-access-doors/",
+      "/hose-cabinets/",
+      "/valve-and-extinguisher-cabinets/"
+    ],
+    "mobileCategory": "/fire-extinguishers/",
+    "multiPageCategory": "/fire-extinguishers/",
+    "sort": {
+      "category": "/fire-extinguishers/",
+      "label": "Price: Ascending",
+      "urlHash": "#/sort:calculated_price:asc"
+    }
+  },
+  "pdp": {
+    "recentlyViewedProfile": null,
+    "mobileBreadcrumbsHidden": true,
+    "popular": [
+      "/10-lb-cosmic-extinguisher-multi-purpose-dry-chemical-jl-industries/",
+      "/20-lb-cosmic-extinguisher-multi-purpose-dry-chemical-jl-industries/",
+      "/2-5-lb-cosmic-extinguisher-multi-purpose-dry-chemical-with-mark-bracket-jl-industries/",
+      "/14x40x8-trimless-cabinet-with-blanket/",
+      "/15-lb-sentinel-extinguisher-carbon-dioxide-jl-industries/",
+      "/2-5-gallon-grenadier-extinguishers-pressurized-water-jl-industries/",
+      "/1-8-gallon-saturn-extinguisher-class-k-wet-chemical-jl-industries/",
+      "/70-5x5-25-surface-mount-cabinet-with-blanket/",
+      "/14x40x8-5-8a-a-a-recessed-cabinet-with-blanket/",
+      "/15x10x5-surface-mount-cabinet-with-blanket/",
+      "/10-lb-galaxy-extinguisher-regular-dry-chemical-jl-industries/",
+      "/16x42x9-5-surface-mount-cabinet-with-blanket/",
+      "/14x40x8-semi-recessed-cabinet-with-blanket/",
+      "/10-5-x-24-x-6-panorama-trimless-fire-extinguisher-cabinet/",
+      "/2-5-lb-galaxy-extinguisher-regular-dry-chemical-with-mount-bracket-jl-industries/",
+      "/5-5-lb-galaxy-extinguisher-regular-dry-chemical-jl-industries/",
+      "/2-5-lb-mercury-extinguisher-halotron-agent-with-mount-bracket-jl-industries/",
+      "/5-lb-cosmic-extinguisher-multi-purpose-dry-chemical-with-mark-bracket-jl-industries/",
+      "/11-lb-mercury-extinguisher-halotron-agent-jl-industries/",
+      "/5-lb-cosmic-extinguisher-multi-purpose-dry-chemical-jl-industries/"
+    ],
+    "selectors": {
+      "breadcrumbs": "ol.breadcrumbs",
+      "breadcrumbHome": "a.breadcrumb-label",
+      "galleryImage": "section[data-image-gallery] img",
+      "description": "#tab-description",
+      "relatedCarousel": null,
+      "reviewsContainer": "#yotpo-reviews-main-widget",
+      "productInfoForm": "#have_a_product_question",
+      "qtyIncrement": "button[data-action=\"inc\"]",
+      "qtyDecrement": "button[data-action=\"dec\"]",
+      "pdfNewTab": true
+    }
+  }
+}

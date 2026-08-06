@@ -1,0 +1,11 @@
+/.claude/*
+!/.claude/agents
+!/.claude/agents/**
+!/.claude/settings.json
+/node_modules
+/cypress/downloads
+/cypress/videos
+/cypress/screenshots
+/presentation.md
+/.vscode
+/results

@@ -1,0 +1,168 @@
+{
+  "_notes": "Configured June 2026. AAP runs the SearchSpring Snap theme (ul.ss__results, .ss__pagination__*). Category taxonomy: /fire-rated/, /flush/, /recessed/, etc. (no /products/ umbrella); NOT flat - nested child categories exist (verified live July 2026 via xmlsitemap.php?type=categories), deepest under /specialty/ (2-3 levels, e.g. /specialty/glass-fiber-doors/glass-fiber-reinforced-gypsum-radius-corner/). Category pages DO render server-side subcategory tiles (.subCategoriesBox with span.navList-action title + a.navList-action link) - the June 2026 'no subcategory boxes / flat taxonomy' note was wrong (only /fire-rated/ was inspected). subcategory suite runs against plp.subcategory=/fire-rated/fbr-5060-fire-rated-uninsulated-removable-panel/ (child of /fire-rated/, breadcrumb contains 'Fire-Rated'). No pro-club form (/pro-club-application/ 404s). Qty stepper buttons absent (no data-action inc/dec; bare .form-increment input). Related carousel is SS recommendation (.ss__recommendation--carousel). Footer: bare <footer> with .box h3 headings, div.copyright for copyright text; phone in footer-bottom-col (1 tel: link). Mobile nav is #mySidenav. LIGHTHOUSE (calibrated July 2 2026, live scores homepage a11y 66 / plp 73 / pdp 64): theme structurally below a healthy a11y score, but clears the fleet-wide accessibility:60 floor (no per-store override). Partly tied to the known sub-44px touch-target deficiency (mobile header hamburger 23px / logo 12px, tallest interactive el ~26px). July 22 2026: the AAP dev team reviewed the touch-target gap and chose to keep the header as-is, so the mobile touch-target tests are now SKIPPED in every browser via branding.skipTouchTarget:true (sanctioned team-decision exception to the leave-it-failing policy). Lighthouse best-practices is no longer asserted fleet-wide (dropped July 22 2026 — platform-level, non-actionable; AAP PDP had scored 58).",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.proClub",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "/pro-club-application/ returns 404 (verified June 2026)",
+      "enables": "pro-club-form.cy.js"
+    },
+    {
+      "configKey": "forms.becomeVendor",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no become-a-vendor page on live site (June 2026 onboarding)",
+      "enables": "become-vendor-form.cy.js"
+    },
+    {
+      "configKey": "forms.architectInquiries",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no /architects/ page on live site (June 2026 onboarding)",
+      "enables": "architect-form.cy.js"
+    }
+  ],
+  "storeCode": "AAP",
+  "baseUrl": "https://www.acudoraccesspanels.com",
+  "homePath": "/",
+  "visitQuery": "redirect=disable",
+  "branding": {
+    "copyrightText": "Acudor Access Panels",
+    "footerLocationText": null,
+    "warehousesLink": {
+      "href": "/warehouses/",
+      "text": "Warehouses"
+    },
+    "imageHosts": ["acudoraccesspanels.com", "bigcommerce.com"],
+    "partnerLinks": null,
+    "mobileNavSelector": "#mySidenav",
+    "skipTouchTarget": true,
+    "overflowIgnore": ["[class*=\"yotpo\"]"],
+    "footer": {
+      "rootSelector": "footer",
+      "sections": ["footer .footer-top", "footer .copyright"],
+      "headingSelector": "footer .box h3",
+      "headings": [
+        "what’s in store",
+        "SECURE SHOPPING",
+        "MY ACCOUNT",
+        "Contact us"
+      ],
+      "navLinks": "footer .box ul li a",
+      "contactInfoBox": "footer .box",
+      "minContactBoxes": 4,
+      "phoneLinks": "footer a[href^=\"tel:\"]",
+      "minPhoneLinks": 1,
+      "copyright": "footer .copyright",
+      "paymentIcons": "footer .footer-payment-icons"
+    }
+  },
+  "plp": {
+    "main": "/fire-rated/",
+    "mainHeading": "Fire-Rated",
+    "breadcrumbLabel": "Fire-Rated",
+    "subcategory": "/fire-rated/fbr-5060-fire-rated-uninsulated-removable-panel/",
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": null,
+      "sidebar": ".sidebarBlock",
+      "sidebarBlocks": ".sidebarBlock",
+      "sidebarBlocksMin": 1,
+      "sidebarLinks": "#treeView li a",
+      "bestSellers": "#treeView li a",
+      "subcategoryBox": ".subCategoriesBox",
+      "subcategoryTitle": "span.navList-action",
+      "subcategoryLink": "a.navList-action",
+      "productCard": "ul.ss__results li.product",
+      "pagination": {
+        "container": ".ss__pagination",
+        "active": ".ss__pagination__current",
+        "links": ".ss__pagination__link",
+        "next": ".ss__pagination__column a.ss__pagination__link",
+        "pageTwoToken": "p=2"
+      }
+    }
+  },
+  "products": {
+    "default": "/24-x-36-fire-rated-insulated-access-door-upward-opening-acudor/",
+    "known": [
+      "/22-x-30-fire-rated-insulated-access-door-upward-opening-acudor/",
+      "/10-x-10-universal-flush-economy-access-door-with-flange-acudor/",
+      "/36-x-36-flush-access-door-with-drywall-bead-flange-acudor/",
+      "/24-x-48-universal-flush-premium-access-door-with-flange-acudor/",
+      "/36-x-48-fire-rated-insulated-access-door-with-flange-acudor/",
+      "/24-x-24-universal-flush-standard-access-door-with-flange-acudor/",
+      "/16-x-16-universal-flush-access-door-with-hidden-flange-acudor/",
+      "/24-x-24-gfrg-r-glass-fiber-reinforced-gypsum-radius-corner-acudor/",
+      "/24-x-36-recessed-access-door-with-behind-drywall-flange-acudor/",
+      "/as-9000-acudor-24-x-24-gasketed-access-door-for-wall-and-ceiling/",
+      "/24-x-36-flush-panel-with-drywall-bead-flange-acudor/",
+      "/24-x-24-fire-rated-un-insulated-access-door-with-flange-acudor/",
+      "/60-x-60-fa-300-floor-door-double-leaf-acudor/",
+      "/24-x-24-anti-ligature-access-door-acudor/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/AAPProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/request-a-quote/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/AAPRequestAQuote/**/submit"
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/AAPContactUsNew/**/submit"
+    },
+    "proClub": null,
+    "becomeVendor": null,
+    "architectInquiries": null
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "fire rated access door",
+      "expectedTokens": ["fire", "rated", "access", "door"],
+      "noResultsTerm": "zzzz-no-products-987654321"
+    },
+    "categories": ["/fire-rated/", "/flush/", "/specialty/", "/specialty/glass-fiber-doors/", "/specialty/adwt/"],
+    "mobileCategory": "/fire-rated/",
+    "multiPageCategory": "/fire-rated/",
+    "sort": {
+      "category": "/fire-rated/",
+      "label": "Price: Low to High",
+      "urlHash": "#/sort:calculated_price:asc"
+    }
+  },
+  "pdp": {
+    "recentlyViewedProfile": "recently-viewed",
+    "mobileBreadcrumbsHidden": true,
+    "popular": [
+      "/24-x-24-universal-flush-economy-access-door-with-flange-acudor/",
+      "/36-x-36-flush-access-door-with-drywall-bead-flange-acudor/",
+      "/24-x-48-universal-flush-premium-access-door-with-flange-acudor/",
+      "/36-x-48-fire-rated-insulated-access-door-with-flange-acudor/",
+      "/24-x-24-universal-flush-standard-access-door-with-flange-acudor/",
+      "/16-x-16-universal-flush-access-door-with-hidden-flange-acudor/",
+      "/24-x-24-gfrg-r-glass-fiber-reinforced-gypsum-radius-corner-acudor/",
+      "/24-x-36-recessed-access-door-with-behind-drywall-flange-acudor/",
+      "/as-9000-acudor-24-x-24-gasketed-access-door-for-wall-and-ceiling/",
+      "/24-x-36-flush-panel-with-drywall-bead-flange-acudor/",
+      "/24-x-24-fire-rated-un-insulated-access-door-with-flange-acudor/",
+      "/24-x-24-anti-ligature-access-door-acudor/"
+    ],
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": null,
+      "galleryImage": "section[data-image-gallery] img",
+      "description": "#tab-description",
+      "relatedCarousel": ".ss__recommendation--carousel",
+      "reviewsContainer": "#yotpo-reviews-main-widget",
+      "productInfoForm": ".product_form_wrap",
+      "qtyIncrement": null,
+      "qtyDecrement": null,
+      "pdfNewTab": true
+    },
+    "_popularNote": "pdp.popular and products.known are independent lists and need not overlap; the 22-x-30 popular URL was verified live (200) July 2 2026."
+  }
+}

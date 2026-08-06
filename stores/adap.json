@@ -1,0 +1,173 @@
+{
+  "_notes": "Configured from the live site (June 2026). Quirks: /products/ root 301s to an external subdomain, so plp.main is the Access Doors category; no Pro Club; quote form lives at /new-request-a-quote/; theme differs from BESTUS (footer-v2, .Info-box contact column, plain .breadcrumbs, no sidebar .categories-left, no related-products carousel, product form in #crmWebToEntityForm). Verified live July 2 2026: breadcrumbs carry a.breadcrumb-label (incl. Home) on PLP+PDP — breadcrumbHome/breadcrumbLabel filled; PLP pagination is AngularJS-rendered .ss-pagination-container > ul.pagination-list > li.pagination-item (active: .pagination-item--current, links: a.pagination-link, next: .pagination-item--next a, ?p=2) — plp.selectors.pagination filled; sort hash #/sort:searchspring_price:asc re-confirmed. LIGHTHOUSE: single fleet-wide LIGHTHOUSE_THRESHOLDS floor (performance 50, accessibility 60, seo 65) applied uniformly — per-store/per-page overrides removed July 2026; best-practices no longer asserted (dropped July 22 2026, platform-level/non-actionable). Live a11y scores homepage 83 / plp 73 / pdp 76 all clear the 60 floor. July 21 2026: dropped discovery.categories '/shop-by-size/access-doors-panels/' — it is a SearchSpring Angular 'shop by size' grid whose card images use ng-src/data-src lazyload with no src attr (visibility:hidden until scrolled), so assertProductCards' img-src check fails. Standard SS-template category pages (e.g. /products/access-doors/application/, /bilco/basement-door/) render .card-figure img with a resolved src and pass; kept those. KNOWN THEME BUG (verified July 27 2026): PDP theme calls jQuery.fancybox() before the lightbox plugin script has loaded (script-order/timing race) → 'jQuery(...).fancybox is not a function' TypeError at document-ready — a first-party theme bug (fires for real users on the same race), low-severity (product-gallery lightbox). Suppressed via a KNOWN_BUGGY_SCRIPTS messagePattern (/.fancybox is not a function/) in checks.js. ADAP devs must load the fancybox plugin before calling it.",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.proClub",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no Pro Club program on live site (June 2026 onboarding)",
+      "enables": "pro-club-form.cy.js"
+    },
+    {
+      "configKey": "forms.architectInquiries",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no /architects/ page on live site (June 2026 onboarding)",
+      "enables": "architect-form.cy.js"
+    }
+  ],
+  "storeCode": "ADAP",
+  "baseUrl": "https://www.accessdoorsandpanels.com",
+  "homePath": "/",
+  "visitQuery": null,
+  "branding": {
+    "headerSelector": ".desktop-header-section",
+    "mobileHeaderSelector": ".iPad_header",
+    "mobileNavSelector": "#mySidenav",
+    "overflowIgnore": ["[class*=\"yotpo\"]", ".scroller", ".zf-templateWidth"],
+    "copyrightText": "AccessDoorsAndPanels",
+    "footerLocationText": "Saint Louis",
+    "warehousesLink": {
+      "href": "/warehouses/",
+      "text": "Warehouses"
+    },
+    "imageHosts": ["accessdoorsandpanels.com", "bigcommerce.com"],
+    "partnerLinks": null,
+    "footer": {
+      "rootSelector": "footer.footer",
+      "sections": [
+        "footer .footer-info",
+        "footer .footer-bottom",
+        "footer .footer-copyright"
+      ],
+      "headingSelector": "footer .footer-info-heading",
+      "headings": [
+        "WHAT'S IN STORE",
+        "Secure Shopping",
+        "My Account",
+        "Contact Info:"
+      ],
+      "navLinks": "footer .footer-info-col ul li a",
+      "contactInfoBox": "footer .Info-box",
+      "minContactBoxes": 3,
+      "phoneLinks": "footer .Info-box a[href^=\"tel:\"]",
+      "minPhoneLinks": 1,
+      "copyright": "footer .footer-copyright p",
+      "paymentIcons": "footer .footer-payment-icons"
+    }
+  },
+  "plp": {
+    "main": "/products/access-doors/",
+    "mainHeading": "Access Doors",
+    "breadcrumbLabel": "Products",
+    "subcategory": "/products/popular-picks/fire-rated/",
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": "a.breadcrumb-label",
+      "sidebar": ".page-sidebar",
+      "sidebarBlocks": ".page-sidebar .ss-facet-container",
+      "sidebarLinks": ".page-sidebar a.ss-list-link",
+      "subcategoryBox": null,
+      "pagination": {
+        "container": ".ss-pagination-container",
+        "active": ".pagination-item--current",
+        "links": "a.pagination-link",
+        "next": ".pagination-item--next a",
+        "pageTwoToken": "p=2"
+      }
+    }
+  },
+  "products": {
+    "default": "/18-x-18-fire-resistive-steel-access-door-milcor/",
+    "known": [
+      "/18-x-18-fire-resistive-steel-access-door-milcor/",
+      "/24-x-24-drywall-access-door-elmdor/",
+      "/24-x-36-flush-aluminum-floor-hatch-cendrex/",
+      "/24-x-24-flush-access-door-with-concealed-latch-and-drywall-flange/",
+      "/24-x-24-virtually-invisible-access-panel-bauco/",
+      "/22-5-x-31-5-up-tu-1010-with-2-extra-steps-350-lbs-load-capacity-insulated-scissor-attic-ladder-lst/",
+      "/56-x-73-x-19-5-ultra-basement-door-bilco/",
+      "/24-x-24-general-purpose-access-door-with-flange-cendrex/",
+      "/24-x-24-flush-access-door-for-all-surfaces-karp/",
+      "/24-x-24-flush-access-door-with-drywall-bead-flange-acudor/",
+      "/24-x-24-fire-rated-insulated-access-door-with-flange-cendrex/",
+      "/24-x-24-flush-access-doors-for-drywall-surfaces-karp/",
+      "/47-x-58-x-30-classic-basement-door-primer-finish-bilco/",
+      "/24-x-24-fire-rated-access-door-for-walls-and-ceilings-karp/",
+      "/24-x-24-tm-multi-purpose-access-panel-with-1-trim-for-walls-ceilings-jl-industries/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/ADAPProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/new-request-a-quote/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/ADAPRequestAQuote/**/submit",
+      "optionalFields": ["Name_First"]
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/ADAPContactUsNew/**/submit"
+    },
+    "proClub": null,
+    "becomeVendor": {
+      "path": "/bvl1/",
+      "submitUrlPattern": "**/forms.zohopublic.com/**/ADAPcomApplyForVendor/**/submit"
+    },
+    "architectInquiries": null
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "fire-rated access door",
+      "expectedTokens": ["fire", "rated", "access", "door"],
+      "noResultsTerm": "zzzz-no-products-987654321"
+    },
+    "categories": [
+      "/products/access-doors/",
+      "/products/roof-floor-hatches/",
+      "/products/popular-picks/fire-rated/",
+      "/products/access-doors/application/",
+      "/bilco/basement-door/"
+    ],
+    "mobileCategory": "/products/popular-picks/fire-rated/",
+    "multiPageCategory": "/products/access-doors/",
+    "sort": {
+      "category": "/products/access-doors/",
+      "label": "Price: Low to High",
+      "urlHash": "#/sort:searchspring_price:asc"
+    }
+  },
+  "pdp": {
+    "_popularNote": "The milcor 18x18 door (products.default) is excluded here: it has no PDF spec sheet, which the PDP spec asserts. productJsonLd:false — ADAP's theme emits no Product JSON-LD (real SEO gap, verified June 2026).",
+    "productJsonLd": false,
+    "popular": [
+      "/18-x-36-drywall-access-door-elmdor/",
+      "/6-x-6-flush-access-door-with-concealed-latch-and-drywall-flange/",
+      "/24-x-36-virtually-invisible-access-panel-bauco/",
+      "/22-5-x-31-5-up-tu-1010-with-2-extra-steps-350-lbs-load-capacity-insulated-scissor-attic-ladder-lst/",
+      "/56-x-73-x-19-5-ultra-basement-door-bilco/",
+      "/12-x-12-general-purpose-access-door-with-flange-cendrex/",
+      "/24-x-36-flush-aluminum-floor-hatch-cendrex/",
+      "/24-x-24-flush-access-door-for-all-surfaces-karp/",
+      "/12-x-12-flush-access-door-with-drywall-bead-flange-acudor/",
+      "/22-x-30-fire-rated-insulated-access-door-with-flange-cendrex/",
+      "/24-x-24-flush-access-doors-for-drywall-surfaces-karp/",
+      "/47-x-58-x-30-classic-basement-door-primer-finish-bilco/",
+      "/24-x-24-fire-rated-access-door-for-walls-and-ceilings-karp/",
+      "/24-x-24-tm-multi-purpose-access-panel-with-1-trim-for-walls-ceilings-jl-industries/"
+    ],
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": "a.breadcrumb-label",
+      "breadcrumbLabel": ".breadcrumb-label",
+      "galleryImage": "section[data-image-gallery] img",
+      "description": ".productView-description",
+      "relatedCarousel": null,
+      "productInfoForm": "main .zf-templateWidth",
+      "reviewsContainer": "#yotpo-reviews-main-widget",
+      "pdfNewTab": false
+    }
+  }
+}

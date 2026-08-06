@@ -1,0 +1,134 @@
+{
+  "_notes": "Baseline/default store — relies on code defaults in store.js (no plp.selectors/pdp.selectors/branding.footer). July 2 2026: sort label corrected to the live wording \"Price: Low to High\" (hash #/ps:calculated_price:asc re-verified live — the ps: prefix is correct for this older SearchSpring template); contact/quote/proClub submitUrlPatterns tightened to named Zoho forms (BESTContactUs, BESTRequestQuote1, BestAccessDoorsProClubVIPProgramApplication). PRO CLUB (July 14 2026): the live country dropdown offers -Select- / Canada / United States; the Canada option is an intentional fallback (a Canadian applicant who submits gets an error screen linking to the CA Pro Club form), NOT a region-lock defect, so no allowedCountries restriction is set (the 'offers only allowed countries' test in pro-club-form.cy.js is gated off). personaOverrides gives all BESTUS form tests a US address (the shared personas.json primary address is Canadian). KNOWN DEFICIENCY (July 23 2026, skipped for now — forms.proClub.emailErrorNotVisible): the Pro Club form correctly blocks submission when Email is empty, but the Email_error message never toggles visible (verified live: style stays display:none 1.5s+ after submit) — a Zoho form-config gap isolated to this one field on this one form. pro-club-form.cy.js gates only the visible-error assertion on this flag; the functional no-submission check still runs unconditionally. Revisit once the Zoho form (BestAccessDoorsProClubVIPProgramApplication) is fixed. KNOWN DEFICIENCY (July 23 2026, skipped for now): /content/assets/js/tracking_code.js — loaded only on /request-a-quote/ — is deployed with literal <script>/</script> wrapper tags still inside the file content (a Zoho UTM/lead-tracking snippet meant for inline embedding, mistakenly saved as a standalone external file). Loaded via <script src>, the browser parses the raw text as JS and chokes on the leading '<' (SyntaxError: Unexpected token '<', no stack — same shape as a redacted cross-origin error). Confirmed low-severity: the real Zoho form/submission is unaffected (manual submit works fine) — only this script's own UTM-attribution cookie logic silently never runs on that page. quote-form.cy.js suppresses this one known error via checks.js's KNOWN_BUGGY_SCRIPTS list. Fix means re-uploading tracking_code.js without the wrapper tags, or embedding the snippet inline instead of via external src.",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.architectInquiries",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no /architects/ page on live site (June 2026 onboarding)",
+      "enables": "architect-form.cy.js"
+    },
+    {
+      "configKey": "forms.becomeVendor",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no become-a-vendor page on live site (June 2026 onboarding)",
+      "enables": "become-vendor-form.cy.js"
+    }
+  ],
+  "storeCode": "BESTUS",
+  "baseUrl": "https://www.bestaccessdoors.com",
+  "homePath": "/",
+  "visitQuery": null,
+  "branding": {
+    "copyrightText": "Best Access Doors",
+    "footerLocationText": "New York",
+    "warehousesLink": {
+      "href": "/warehouses/",
+      "text": "Warehouses"
+    },
+    "imageHosts": ["bestaccessdoors.com", "bigcommerce.com"],
+    "partnerLinks": [
+      "https://www.bimobject.com/en/best-access-doors?location=us",
+      "https://www.rib-software.com/en/rib-speclink"
+    ],
+    "overflowIgnore": ["[class*=\"yotpo\"]"]
+  },
+  "plp": {
+    "main": "/products/",
+    "mainHeading": "Products",
+    "breadcrumbLabel": "Products",
+    "subcategory": "/products/popular-picks/fire-rated/"
+  },
+  "products": {
+    "default": "/22-x-30-fire-rated-insulated-access-door-with-exposed-flange/",
+    "known": [
+      "/24-x-24-fire-rated-insulated-access-door-with-exposed-flange/",
+      "/24-x-36-flush-universal-access-door-with-exposed-flange/",
+      "/24-x-36-invisa-hatch-drywall-inlay-with-fully-detachable-hatch-with-mud-in-flange/",
+      "/24-x-24-removable-access-panel-with-detachable-hatch-and-drywall-insert/",
+      "/12-x-12-aluminum-frame-drywall-inlay-access-panel-for-walls/",
+      "/24-x-24-flush-access-door-with-drywall-bead-flange/",
+      "/24-x-36-flush-panel-with-drywall-bead-flange/",
+      "/22-x-30-flush-removable-access-door-with-drywall-bead-flange/",
+      "/14-to-155-ezmag-adjustable-magnetic-closing-access-panel/",
+      "/16-x-24-universal-flush-premium-panel-with-flange/",
+      "/24-x-24-pop-out-radius-corner-gypsum-access-panel-for-ceilings/",
+      "/27-x-35-insulated-crawl-space-access-door/",
+      "/12-x-12-universal-economy-flush-metal-access-door/",
+      "/12-x-12-drywall-inlay-panel-for-wall-tiling/",
+      "/24-x-24-airtight-watertight-panel-prime-coated/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BESTProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/request-a-quote/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BESTRequestQuote1/**/submit"
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BESTContactUs/**/submit"
+    },
+    "proClub": {
+      "path": "/pro-club-application/",
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BestAccessDoorsProClubVIPProgramApplication/**/submit",
+      "emailErrorNotVisible": true
+    },
+    "architectInquiries": null,
+    "becomeVendor": null
+  },
+  "personaOverrides": {
+    "address1": "123 Test Lane",
+    "city": "Houston",
+    "region": "TX",
+    "zip": "77001",
+    "country": "United States"
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "fire-rated access door",
+      "expectedTokens": ["fire", "rated", "access", "door"],
+      "noResultsTerm": "zzzz-no-products-987654321"
+    },
+    "categories": [
+      "/products/",
+      "/products/access-doors-panels/",
+      "/products/access-doors-panels/type/",
+      "/products/access-doors-panels/shop-by-size/",
+      "/shop-by-size/access-doors-panels/",
+      "/products/popular-picks/fire-rated/",
+      "/products/popular-picks/drywall/mud-in-flange/",
+      "/products/popular-picks/drywall/mud-in-flange/flush-access-door/"
+    ],
+    "mobileCategory": "/products/popular-picks/fire-rated/",
+    "multiPageCategory": "/products/",
+    "sort": {
+      "category": "/products/",
+      "label": "Price: Low to High",
+      "urlHash": "#/ps:calculated_price:asc"
+    }
+  },
+  "pdp": {
+    "popular": [
+      "/22-x-30-fire-rated-insulated-access-door-with-exposed-flange/",
+      "/24-x-36-flush-universal-access-door-with-exposed-flange/",
+      "/24-x-36-invisa-hatch-drywall-inlay-with-fully-detachable-hatch-with-mud-in-flange/",
+      "/24-x-24-removable-access-panel-with-detachable-hatch-and-drywall-insert/",
+      "/24-x-24-aluminum-frame-drywall-inlay-access-panel-for-walls/",
+      "/24-x-24-flush-access-door-with-drywall-bead-flange/",
+      "/36-x-36-flush-panel-with-drywall-bead-flange/",
+      "/24-x-24-flush-removable-access-door-with-drywall-bead-flange/",
+      "/105-to-12-ezmag-adjustable-magnetic-closing-access-panel/",
+      "/16-x-24-universal-flush-premium-panel-with-flange/",
+      "/24-x-24-pop-out-radius-corner-gypsum-access-panel-for-ceilings/",
+      "/21-x-31-insulated-crawl-space-access-door/",
+      "/24-x-24-universal-economy-flush-metal-access-door/",
+      "/12-x-12-drywall-inlay-panel-for-wall-tiling/",
+      "/24-x-24-airtight-watertight-panel-prime-coated/"
+    ]
+  }
+}

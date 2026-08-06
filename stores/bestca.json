@@ -1,0 +1,176 @@
+{
+  "_notes": "Configured from the live site (June 2026). BESTCA runs a newer SearchSpring \"Snap\" storefront theme + CAD pricing, unlike BESTUS. Quirks: category taxonomy is /any-surface-access-doors/... (no /products/ — it 404s); product grid renders into ul.ss__results.ss__results--grid (not ul.productGrid); pagination uses .ss__pagination__* with ?page=2 query param; sort is a custom .ss__dropdown that hash-routes (#/sort:calculated_price:asc); breadcrumbs are plain .breadcrumbs whose links (incl. the Home link) carry a.breadcrumb-label (verified live July 2 2026 — breadcrumbHome filled on plp/pdp selectors; the default .breadcrumb-label >=2 check also applies); sidebar is a single-block .page-sidebar (so the >=2-block sidebar test is skipped via sidebar:null; the category tree is covered by bestSellers #treeView); PDP has no qty stepper buttons; reviews in #yotpo-reviews-main-widget; recently-viewed SearchSpring profile is \"similar\"; Product JSON-LD is present but priceCurrency is CAD. Qty stepper absence re-verified live July 2 2026 (no button[data-action=inc/dec] in PDP HTML) — qtyIncrement/qtyDecrement stay null. Contact/quote/proClub submitUrlPatterns tightened to named Zoho forms July 2 2026 (BESTCAContactUsNew, BESTCARequestAQuote, BestAccessDoorsProClubCanadaApplication). PRO CLUB (July 14 2026): the live form gained a required country dropdown select[name=Address_Country] (options -Select- / Canada / United States, default -Select-), so hasCountry flipped false->true — the shared persona (country: Canada) now selects Canada and the address validates. The United States option is intentional (routes inattentive US applicants to a post-submit error screen linking to the US Pro Club form), NOT a region-lock deficiency, so no allowedCountries restriction is set. LIGHTHOUSE (calibrated July 2 2026, live scores homepage a11y 70 / plp 78 / pdp 68): Snap theme is structurally below a healthy a11y score, but all clear the fleet-wide accessibility:60 floor (no per-store override).thresholds. July 21 2026: dropped discovery.categories '/exterior-access-doors-and-panels/' — its 3rd product card is a quote-only item (the 24x24 Airtight / Watertight Access Door) with an empty price element, breaking the PLP-grade assertProductCards price check on discovery category pages. Kept the 5 other cats, all verified live with priced first 3 cards.",
+  "_absentFeatures": [
+    {
+      "configKey": "forms.architectInquiries",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no /architects/ page on live site (June 2026 onboarding)",
+      "enables": "architect-form.cy.js"
+    },
+    {
+      "configKey": "forms.becomeVendor",
+      "fillWith": "{ \"path\": \"/<form-page>/\", \"submitUrlPattern\": \"**/forms.zohopublic.com/**/<ZohoFormName>/**/submit\" }",
+      "verifiedAbsent": "no become-a-vendor page on live site (June 2026 onboarding)",
+      "enables": "become-vendor-form.cy.js"
+    }
+  ],
+  "storeCode": "BESTCA",
+  "baseUrl": "https://www.bestaccessdoors.ca",
+  "homePath": "/",
+  "visitQuery": null,
+  "branding": {
+    "copyrightText": "Best Access Doors - Canada",
+    "footerLocationText": "Ancaster",
+    "currency": "CAD",
+    "mobileNavSelector": "div.Mobile_menu",
+    "skipMobileTouchTarget": true,
+    "overflowIgnore": ["[class*=\"yotpo\"]"],
+    "warehousesLink": {
+      "href": "https://www.bestaccessdoors.ca/warehouses/",
+      "text": "Warehouses"
+    },
+    "imageHosts": ["bestaccessdoors.ca", "bigcommerce.com"],
+    "partnerLinks": [
+      "https://www.bimobject.com/en/best-access-doors?location=us",
+      "https://www.rib-software.com/en/rib-speclink"
+    ],
+    "footer": {
+      "rootSelector": "footer.footer",
+      "sections": ["footer .footer-info", "footer .footer-copyright"],
+      "headingSelector": "footer .footer-info-heading",
+      "headings": [
+        "What's In Store",
+        "Secure Shopping",
+        "My Account",
+        "Contact Info"
+      ],
+      "navLinks": "footer .footer-info-col ul li a",
+      "contactInfoBox": "footer .contactbox",
+      "minContactBoxes": 1,
+      "phoneLinks": "footer a[href^=\"tel:\"]",
+      "minPhoneLinks": 1,
+      "copyright": "footer .footer-copyright p",
+      "paymentIcons": "footer .footer-payment-icons"
+    }
+  },
+  "plp": {
+    "main": "/any-surface-access-doors/fire-rated-doors/",
+    "mainHeading": "Fire-Rated",
+    "breadcrumbLabel": "Any Surface",
+    "subcategory": "/any-surface-access-doors/fire-rated-doors/drywall-flange/",
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": "a.breadcrumb-label",
+      "sidebar": ".page-sidebar",
+      "sidebarBlocks": ".page-sidebar .sidebarBlock",
+      "sidebarBlocksMin": 1,
+      "sidebarLinks": ".page-sidebar #treeView > li > a",
+      "bestSellers": "#treeView > li > a",
+      "productCard": "ul.ss__results li.product",
+      "pagination": {
+        "container": ".ss__pagination",
+        "active": ".ss__pagination__current",
+        "links": ".ss__pagination__link",
+        "next": ".ss__pagination__column a.ss__pagination__link",
+        "pageTwoToken": "page=2"
+      }
+    }
+  },
+  "products": {
+    "default": "/12-x-12-fire-rated-un-insulated-access-door-with-flange/",
+    "known": [
+      "/24-x-24-fire-rated-insulated-access-door-with-flange/",
+      "/36-x-36-fire-rated-insulated-access-door-with-flange/",
+      "/22-x-36-fire-rated-insulated-access-door-with-flange/",
+      "/8-x-8-fire-rated-un-insulated-access-door-with-flange/",
+      "/24-x-24-general-purpose-access-door-with-flange/",
+      "/12-x-12-general-purpose-access-door-with-flange/",
+      "/22-5-x-31-5-insulated-metal-scissor-attic-ladder/",
+      "/24-x-24-flush-access-door-with-concealed-latch-and-mud-in-flange/",
+      "/22-x-36-fire-rated-insulated-upward-opening-ceiling-door/",
+      "/24-x-24-insulated-aluminum-access-door/",
+      "/8-x-8-removable-floor-door-recessed-vinyl-carpet/",
+      "/24-x-36-flush-aluminum-floor-hatch/",
+      "/12-x-12-universal-access-panel/",
+      "/36-x-36-roof-hatch/",
+      "/30-x-56-up-to-11-10-fire-rated-insulated-metal-attic-ladder/"
+    ]
+  },
+  "forms": {
+    "productInfo": {
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BESTCAProductForm/**/submit"
+    },
+    "quoteRequest": {
+      "path": "/request-a-quote/",
+      "quantityOptions": ["I don't know", "1", "2", "3", "4", "5+"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BESTCARequestAQuote/**/submit",
+      "optionalFields": ["Name_First"]
+    },
+    "contact": {
+      "path": "/contact-us/",
+      "inquiryTypes": ["Sales & Products", "Customer Service & Existing Orders"],
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BESTCAContactUsNew/**/submit"
+    },
+    "proClub": {
+      "path": "/pro-club-application/",
+      "submitUrlPattern": "**/forms.zohopublic.com/**/BestAccessDoorsProClubCanadaApplication/**/submit",
+      "hasCountry": true
+    },
+    "architectInquiries": null,
+    "becomeVendor": null
+  },
+  "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
+  "discovery": {
+    "search": {
+      "knownTerm": "fire-rated access door",
+      "expectedTokens": ["fire", "rated", "access", "door"],
+      "noResultsTerm": "zzzz-no-products-987654321"
+    },
+    "categories": [
+      "/fire-rated-access-doors-and-panels/",
+      "/fire-rated-access-doors/by-fire-rating/",
+      "/drywall-access-doors-panels/exposed-flange/",
+      "/new-products/hidden-flush-drywall-inlay/fixed-hinges-mud-in-flange/",
+      "/roof-hatch/"
+    ],
+    "mobileCategory": "/any-surface-access-doors/fire-rated-doors/",
+    "multiPageCategory": "/any-surface-access-doors/fire-rated-doors/",
+    "sort": {
+      "category": "/any-surface-access-doors/fire-rated-doors/",
+      "label": "Price: Low to High",
+      "urlHash": "#/sort:calculated_price:asc"
+    }
+  },
+  "pdp": {
+    "recentlyViewedProfile": "similar",
+    "mobileBreadcrumbsHidden": true,
+    "popular": [
+      "/24-x-24-fire-rated-insulated-access-door-with-flange/",
+      "/36-x-36-fire-rated-insulated-access-door-with-flange/",
+      "/22-x-36-fire-rated-insulated-access-door-with-flange/",
+      "/8-x-8-fire-rated-un-insulated-access-door-with-flange/",
+      "/24-x-24-general-purpose-access-door-with-flange/",
+      "/12-x-12-general-purpose-access-door-with-flange/",
+      "/22-5-x-31-5-insulated-metal-scissor-attic-ladder/",
+      "/24-x-24-flush-access-door-with-concealed-latch-and-mud-in-flange/",
+      "/22-x-36-fire-rated-insulated-upward-opening-ceiling-door/",
+      "/24-x-24-insulated-aluminum-access-door/",
+      "/8-x-8-removable-floor-door-recessed-vinyl-carpet/",
+      "/24-x-36-flush-aluminum-floor-hatch/",
+      "/12-x-12-universal-access-panel/",
+      "/36-x-36-roof-hatch/",
+      "/30-x-56-up-to-11-10-fire-rated-insulated-metal-attic-ladder/"
+    ],
+    "selectors": {
+      "breadcrumbs": ".breadcrumbs",
+      "breadcrumbHome": "a.breadcrumb-label",
+      "galleryImage": "section[data-image-gallery] img",
+      "relatedCarousel": ".ss__recommendation--carousel",
+      "reviewsContainer": "#yotpo-reviews-main-widget",
+      "productInfoForm": "#request_more_info_about_this_product",
+      "qtyIncrement": null,
+      "qtyDecrement": null,
+      "pdfNewTab": true
+    }
+  }
+}

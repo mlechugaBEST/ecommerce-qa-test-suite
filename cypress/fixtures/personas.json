@@ -1,0 +1,21 @@
+{
+  "primary": {
+    "firstName": "Mauricio",
+    "lastName": "Testing",
+    "company": "Testing LLC",
+    "website": "https://www.example.com",
+    "phoneCode": "+1",
+    "phoneNumber": "5551234567",
+    "address1": "123 Test Lane",
+    "address2": "",
+    "city": "Waterloo",
+    "region": "ON",
+    "zip": "N2L4T8",
+    "country": "Canada",
+    "details": "Automated test submission — please ignore.",
+    "inquiryType": "Sales & Products",
+    "model": "BA-FRI",
+    "size": "8\" x 8\"",
+    "quantity": "I don't know"
+  }
+}

@@ -1,0 +1,91 @@
+============================================================
+  BEST ACCESS DOORS - WEBSITE TESTS
+  Quick start for non-technical users
+============================================================
+
+These tests act like a robot customer: they open the
+websites, fill out forms, click around, and check that
+everything still works. Everything runs in Google Chrome.
+
+The EASIEST way is the Dashboard: a friendly page in your
+web browser with buttons and colored results. Just
+double-click one file. (The old ".bat" files still work
+too - see "OLD WAY" near the bottom.)
+
+
+------------------------------------------------------------
+  STEP 1 - ONE-TIME SETUP  (only the very first time)
+------------------------------------------------------------
+
+  Double-click:   First Time Setup.bat
+
+  It installs everything the tests need. This takes a few
+  minutes. When it says "ALL SET!", close the window.
+
+  If it says Node.js is not installed:
+    1. Go to   https://nodejs.org
+    2. Click the big green "LTS" button.
+    3. Run the downloaded installer, click Next until done.
+    4. Double-click "First Time Setup.bat" again.
+
+  You also need Google Chrome installed (most computers
+  already have it).  Get it at:  https://www.google.com/chrome
+
+
+------------------------------------------------------------
+  STEP 2 - OPEN THE DASHBOARD  (the easy way)
+------------------------------------------------------------
+
+  Double-click:   Test Dashboard.bat
+
+  Your web browser opens automatically. In the page:
+    1. Tick the store(s) you want to test (or "Select all").
+    2. Click  "Run selected".
+    3. Watch the colored cards fill in as each store finishes.
+
+  Green = all good.  Orange/Red = something is broken.
+  Click a red card to see the failing tests, open the
+  screenshot, or play the video of what happened.
+
+  Leave the small black window open while you work - it's
+  the engine. Closing it stops the dashboard.
+
+
+------------------------------------------------------------
+  STEP 3 - READ THE RESULTS
+------------------------------------------------------------
+
+  In the Dashboard, each store gets a card:
+    - PASS (green)   = working
+    - FAIL (red/orange) = something is broken - click to see
+    - pending / skipped = turned off on purpose (not a problem)
+
+  The "History" tab shows every past run.
+
+  Results are also saved to:   results\test-results.log
+  Failure screenshots are in:  cypress\screenshots\
+  Failure videos are in:       cypress\videos\
+
+
+------------------------------------------------------------
+  OLD WAY - RUN FROM A BLACK WINDOW (still works)
+------------------------------------------------------------
+
+  To test EVERY store, double-click:   Run All Tests.bat
+  To test just ONE store, double-click: Run One Store.bat
+     ...then type the store number and press Enter.
+
+  A black/white window with scrolling text is normal.
+  When it finishes, scroll up to see PASS / FAIL.
+
+
+------------------------------------------------------------
+  IF SOMETHING GOES WRONG
+------------------------------------------------------------
+
+  - Take a screenshot of the window (red text and all).
+  - Send it to whoever set this up for you.
+
+  Most problems are fixed by double-clicking
+  "First Time Setup.bat" once more.
+============================================================

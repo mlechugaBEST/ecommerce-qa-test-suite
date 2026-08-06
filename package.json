@@ -1,0 +1,19 @@
+{
+  "scripts": {
+    "test": "cypress run --browser chrome",
+    "test:open": "cypress open --browser chrome",
+    "test:store": "node scripts/run-store.js",
+    "test:all": "node scripts/run-all.js",
+    "test:live": "cross-env LIVE_SUBMIT=true I_KNOW_THIS_IS_LIVE=true cypress run --browser chrome",
+    "dashboard": "node scripts/dashboard/server.js"
+  },
+  "devDependencies": {
+    "@cypress-audit/lighthouse": "^1.4.2",
+    "cross-env": "^7.0.3",
+    "cypress": "^15.14.2",
+    "lighthouse": "^10.4.0"
+  },
+  "dependencies": {
+    "cypress-real-events": "^1.15.0"
+  }
+}

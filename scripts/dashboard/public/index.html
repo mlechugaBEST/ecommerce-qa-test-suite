@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Best Access Doors — Test Dashboard</title>
+    <script>
+      // Apply saved theme before paint to avoid a flash. Default: light.
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('dashboard-theme'); } catch (e) {}
+        document.documentElement.dataset.theme = t === 'dark' ? 'dark' : 'light';
+      })();
+    </script>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true"></span>
+        <div>
+          <h1>Website Test Dashboard</h1>
+          <p class="sub">Best Access Doors — runs the robot customer against your live stores</p>
+        </div>
+      </div>
+      <nav class="tabs">
+        <button class="tab active" data-tab="run">Run tests</button>
+        <button class="tab" data-tab="history">History</button>
+        <button id="theme-toggle" class="theme-toggle" type="button" title="Switch light/dark">🌙 Dark</button>
+        <button id="exit-btn" class="exit-btn" type="button" title="Stop everything and close the dashboard">⏻ Exit</button>
+      </nav>
+    </header>
+
+    <main>
+      <!-- RUN TAB -->
+      <section id="tab-run" class="tab-panel active">
+        <div class="controls">
+          <div class="store-picker">
+            <div class="store-picker-head">
+              <strong>Choose stores</strong>
+              <div class="picker-actions">
+                <button id="select-all" class="link-btn" type="button">Select all</button>
+                <button id="select-none" class="link-btn" type="button">Clear</button>
+              </div>
+            </div>
+            <div id="store-list" class="store-list">Loading stores…</div>
+          </div>
+          <div class="run-actions">
+            <button id="run-btn" class="primary" type="button" disabled>▶ Run selected</button>
+            <button id="stop-btn" class="danger" type="button" hidden>■ Stop run</button>
+            <button id="rerun-btn" class="warn" type="button" hidden>↻ Re-run failed</button>
+            <div id="status-line" class="status-line">Pick one or more stores, then press Run.</div>
+          </div>
+        </div>
+
+        <div id="cards" class="cards"></div>
+
+        <details id="log-box" class="log-box">
+          <summary>Live log <span id="log-hint" class="log-hint"></span></summary>
+          <pre id="log"></pre>
+        </details>
+      </section>
+
+      <!-- HISTORY TAB -->
+      <section id="tab-history" class="tab-panel">
+        <div class="history-head">
+          <strong>Past runs</strong>
+          <button id="refresh-history" class="link-btn" type="button">Refresh</button>
+        </div>
+        <div id="history" class="history">Loading…</div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -181,13 +181,18 @@ export const KNOWN_BUGGY_SCRIPTS = [
     // BRH) because the popup is store-functional (see the AAP/PDA drift notes). Its telemetry
     // (`logMetric`) fire-and-forgets a fetch that fails under Cypress (blocked host / CORS), and
     // because nothing on the page catches it, the rejection surfaces as an unhandled promise
-    // rejection that fails the test. Match the MESSAGE, not the stack: a "Failed to fetch" TypeError
-    // has a frameless stack in Chrome (the klaviyo/logMetric frames exist only in Cypress's async
-    // display trace, not in err.stack), so a /klaviyo/ stack match never fires. This is safe because
-    // uncaught:exception only fires for UNHANDLED rejections, and every fetch our own specs check
-    // (assertLinksResolve, image health) is awaited/caught — so it can never mask a real test
-    // signal, only fire-and-forget third-party telemetry. (The matching `[fetch failed] …klaviyo…`
-    // console-spy line is separately ignored via DEFAULT_IGNORE in makeConsoleErrorSpy below.)
+    // rejection that fails the test. Match the MESSAGE, not the stack: the frames such a rejection
+    // does carry belong to klaviyo.js and BigCommerce's csrf-protection-header wrapper, neither of
+    // which is a THIRD_PARTY_HOSTS entry (Klaviyo is deliberately not blocked), so no stackPattern
+    // here would fire. This is safe because uncaught:exception only fires for UNHANDLED rejections,
+    // and every fetch our own specs check (assertLinksResolve, image health) is awaited/caught — so
+    // it can never mask a real test signal, only fire-and-forget third-party telemetry. (The
+    // matching `[fetch failed] …klaviyo…` console-spy line is separately ignored via DEFAULT_IGNORE
+    // in makeConsoleErrorSpy below.) NOTE this entry is only reachable on visits WITHOUT the
+    // makeConsoleErrorSpy fetch wrapper (form specs, seo/images/lighthouse) — where the rejection is
+    // app-frame. On spied visits the wrapper now handles the rejection at the source; it must never
+    // hand back a rejected promise of its own, since a spec-frame rejection bypasses this list
+    // entirely (see the wrapper's comment in makeConsoleErrorSpy and the note in e2e.js).
     messagePattern: /Failed to fetch/,
   },
 ];
@@ -579,6 +584,16 @@ export function assertProductJsonLd({ requirePrice = true } = {}) {
 const DEFAULT_IGNORE = ['klaviyo'];
 
 /**
+ * fetch()'s first argument may be a URL string, a URL object, or a Request — and on these
+ * storefronts it usually IS a Request, because BigCommerce's csrf-protection-header script
+ * re-wraps window.fetch and normalizes the call before it reaches our wrapper. Interpolating
+ * that straight into a template literal yields a useless "[object Request]", which loses the
+ * very thing the wrapper exists to report (and the URL substring the ignore list matches on).
+ */
+const fetchUrlOf = (input) =>
+  typeof input === 'string' ? input : (input && input.url) || String(input);
+
+/**
  * @param {string[]} [ignore] - extra substrings; merged with DEFAULT_IGNORE. Calls whose
  *   first arg contains any matching substring are excluded from the assertion.
  */
@@ -591,11 +606,24 @@ export function makeConsoleErrorSpy({ ignore = [] } = {}) {
       // Wrap fetch so failed requests are re-logged with their URL, making it easy
       // to identify which script triggered "Failed to fetch" in assertClean output.
       const origFetch = win.fetch.bind(win);
-      win.fetch = (...args) =>
-        origFetch(...args).catch((err) => {
-          win.console.error(`[fetch failed] ${args[0]}`, err);
-          return Promise.reject(err);
+      win.fetch = (...args) => {
+        const p = origFetch(...args);
+        // Log on a SIDE branch and hand back the ORIGINAL promise — never
+        // `return p.catch(… ; return Promise.reject(err))`. This wrapper is spec-bundle code
+        // running inside the AUT, so a promise it creates and returns is attributed to the
+        // SPEC frame, and Cypress fails spec-frame unhandled rejections unconditionally:
+        // cy.onUncaughtException only consults the uncaught:exception event (and therefore
+        // KNOWN_BUGGY_SCRIPTS / THIRD_PARTY_HOSTS) when frameType === 'app'. The old
+        // re-rejection turned Klaviyo's fire-and-forget logMetric "Failed to fetch" into
+        // exactly that unsuppressable shape, killing before-all hooks (see e2e.js).
+        // Attaching our own handler here also means such a fire-and-forget third-party fetch
+        // no longer surfaces as an unhandled rejection at all, while app code that awaits a
+        // failed fetch without catching still rejects in the APP frame and stays triageable.
+        p.catch((err) => {
+          win.console.error(`[fetch failed] ${fetchUrlOf(args[0])}`, err);
         });
+        return p;
+      };
     },
     assertClean: () =>
       cy.then(() => {

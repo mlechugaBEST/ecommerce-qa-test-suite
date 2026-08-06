@@ -66,6 +66,20 @@ Cypress.on('window:before:load', (win) => {
 //     SyntaxError comes back with no stack at all, same redacted shape as case 1).
 // Anything else — including any exception with a real, attributable stack that isn't one of our
 // known vendors/defects — is treated as first-party and allowed to fail the test as normal.
+//
+// LIMIT OF THIS HANDLER — it only ever sees APP-frame errors. Cypress binds error/unhandledrejection
+// listeners on both the AUT window (frameType 'app') and the spec window (frameType 'spec'), and
+// cy.onUncaughtException only emits the `uncaught:exception` event when frameType === 'app'. A
+// spec-frame error fails the test unconditionally, no matter what THIRD_PARTY_HOSTS or
+// KNOWN_BUGGY_SCRIPTS say — you can recognize one by its message: "originated from your test code"
+// (rather than "…your application code"), and by the absence of Cypress's usual "you can choose to
+// turn this off by listening to the uncaught:exception event" sentence. This bit us once: the
+// makeConsoleErrorSpy fetch wrapper used to `return Promise.reject(err)` from its .catch, which
+// turned Klaviyo's fire-and-forget "Failed to fetch" telemetry rejection into a spec-frame
+// rejection that killed pdp.mobile's before-all hook despite the matching KNOWN_BUGGY_SCRIPTS entry.
+// So: support-file code that runs inside the AUT (the fetch wrapper in checks.js, the BRH
+// setTimeout wrap above) must handle its own async failures AT THE SOURCE and must never hand back
+// a promise it leaves in a rejected state — this handler cannot rescue it.
 Cypress.on('uncaught:exception', (err) => {
   Cypress.log({ name: 'Uncaught Error', message: err.message });
   // A redacted cross-origin failure has two shapes: a THROWN error (Cypress wording

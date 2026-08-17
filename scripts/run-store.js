@@ -12,6 +12,11 @@ const { spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { resolveCypressBin } = require('./resolveCypressBin');
+const { warnIfUnsupportedNode } = require('./nodeGate');
+
+// Visible-only check: the launchers guarantee a verified Node, a bare
+// `npm run test:store` does not. Never changes the exit code.
+warnIfUnsupportedNode();
 
 const storesDir = path.join(__dirname, '..', 'stores');
 

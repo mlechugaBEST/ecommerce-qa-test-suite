@@ -19,14 +19,20 @@ too - see "OLD WAY" near the bottom.)
 
   Double-click:   First Time Setup.bat
 
-  It installs everything the tests need. This takes a few
-  minutes. When it says "ALL SET!", close the window.
+  It installs everything the tests need - including Node.js
+  itself if you don't already have it. You don't have to
+  download or install anything by hand.
 
-  If it says Node.js is not installed:
-    1. Go to   https://nodejs.org
-    2. Click the big green "LTS" button.
-    3. Run the downloaded installer, click Next until done.
-    4. Double-click "First Time Setup.bat" again.
+  This takes 10-20 minutes the first time, mostly downloading.
+  Leave it alone until it says "ALL SET!", then close the window.
+
+  Notes:
+    - It may create a "tools" folder here holding its own private
+      copy of Node.js. That's normal. Nothing else on your
+      computer is changed, and deleting the folder is safe (setup
+      just downloads it again).
+    - If Windows ever asks for permission during setup, clicking
+      either Yes or No is fine - it works both ways.
 
   You also need Google Chrome installed (most computers
   already have it).  Get it at:  https://www.google.com/chrome

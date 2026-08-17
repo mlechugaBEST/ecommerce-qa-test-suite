@@ -1,6 +1,9 @@
 {
   "name": "ecommerce-qa-test-suite",
   "private": true,
+  "engines": {
+    "node": "^20.1.0 || ^22.0.0 || >=24.0.0"
+  },
   "scripts": {
     "test": "cypress run --browser chrome",
     "test:open": "cypress open --browser chrome",

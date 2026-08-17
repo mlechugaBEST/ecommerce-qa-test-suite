@@ -5,7 +5,22 @@ REM  Just double-click it. Your browser opens; click "Run".
 REM  Leave this window open while you use the dashboard; closing it stops it.
 REM ====================================================================
 title Best Access Doors Tests - Dashboard
-cd /d "%~dp0"
+REM  pushd, not cd /d: cd /d cannot enter a UNC path (\\server\share).
+pushd "%~dp0"
+if errorlevel 1 (
+  echo  [X] Could not open the tests folder.
+  pause
+  exit /b 1
+)
+
+REM --- Make sure Node.js is usable (before the node_modules check,
+REM      because First Time Setup itself needs Node.js) -------------
+call "%~dp0scripts\ensure-node.bat"
+if errorlevel 1 (
+  popd
+  pause
+  exit /b 1
+)
 
 REM --- Make sure setup was done first -------------------------------
 if not exist "node_modules" (
@@ -14,13 +29,10 @@ if not exist "node_modules" (
   echo      Running "First Time Setup" for you now...
   echo.
   call "First Time Setup.bat"
-)
-
-where node >nul 2>nul
-if errorlevel 1 (
-  echo  [X] Node.js is not installed. Run "First Time Setup.bat" first.
-  pause
-  exit /b 1
+  if errorlevel 1 (
+    popd
+    exit /b 1
+  )
 )
 
 echo.
@@ -45,4 +57,5 @@ echo  ============================================================
 echo   The dashboard has stopped unexpectedly. See the error above.
 echo  ============================================================
 echo.
+popd
 pause

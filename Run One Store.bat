@@ -4,7 +4,22 @@ REM  RUN ONE STORE - pick a store from the menu, tests it in Chrome.
 REM  Just double-click it.
 REM ====================================================================
 title Best Access Doors Tests - Run One Store
-cd /d "%~dp0"
+REM  pushd, not cd /d: cd /d cannot enter a UNC path (\\server\share).
+pushd "%~dp0"
+if errorlevel 1 (
+  echo  [X] Could not open the tests folder.
+  pause
+  exit /b 1
+)
+
+REM --- Make sure Node.js is usable (before the node_modules check,
+REM      because First Time Setup itself needs Node.js) -------------
+call "%~dp0scripts\ensure-node.bat"
+if errorlevel 1 (
+  popd
+  pause
+  exit /b 1
+)
 
 if not exist "node_modules" (
   echo.
@@ -12,13 +27,10 @@ if not exist "node_modules" (
   echo      Running "First Time Setup" for you now...
   echo.
   call "First Time Setup.bat"
-)
-
-where node >nul 2>nul
-if errorlevel 1 (
-  echo  [X] Node.js is not installed. Run "First Time Setup.bat" first.
-  pause
-  exit /b 1
+  if errorlevel 1 (
+    popd
+    exit /b 1
+  )
 )
 
 :menu
@@ -52,7 +64,7 @@ if "%choice%"=="6" set store=fse
 if "%choice%"=="7" set store=brh
 if "%choice%"=="8" set store=cad
 if "%choice%"=="9" set store=pda
-if "%choice%"=="0" exit /b 0
+if "%choice%"=="0" popd & exit /b 0
 
 if not defined store (
   echo.

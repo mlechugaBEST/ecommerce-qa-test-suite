@@ -14,6 +14,11 @@ const fs = require('fs');
 const path = require('path');
 const { SUMMARY_DIR } = require('./writeRunLog');
 const { resolveCypressBin } = require('./resolveCypressBin');
+const { warnIfUnsupportedNode } = require('./nodeGate');
+
+// Visible-only check: the launchers guarantee a verified Node, a bare
+// `npm run test:all` does not. Never changes the exit code.
+warnIfUnsupportedNode();
 
 const storesDir = path.join(__dirname, '..', 'stores');
 const LOG_FILE = path.join(__dirname, '..', 'results', 'test-results.log');

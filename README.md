@@ -66,17 +66,23 @@ For each form, the tests verify:
 
 ## Requirements
 
-You need **Node.js** installed on your computer. Node.js is a tool that lets you run JavaScript programs outside of a web browser — it's what powers the test runner.
+You need **Node.js**. Node.js is a tool that lets you run JavaScript programs outside of a web browser — it's what powers the test runner.
 
-**To check if you already have it:**
+**On Windows you don't have to install it yourself** — double-click `First Time Setup.bat` and it will download and set up a supported Node.js for you (see [Setup](#setup) below).
 
-Open a terminal (on Windows: press `Win + R`, type `cmd`, press Enter) and run:
+**To check what you already have,** open a terminal (on Windows: press `Win + R`, type `cmd`, press Enter) and run:
 
 ```
 node --version
 ```
 
-If you see a version number like `v20.11.0`, you're good. If you get an error, download and install Node.js from [nodejs.org](https://nodejs.org) — choose the "LTS" (recommended) version.
+Supported versions are **22.x or 24.x**. Anything else — Node 20 and older, the odd-numbered non-LTS releases, and Node 26+ — is rejected on purpose; `First Time Setup.bat` installs a supported version (**24.19.0**) alongside the tests instead of using it. That is stricter than the range Cypress declares in its own `engines` field (and mirrored in this project's `package.json`), at both ends:
+
+> **Node 20 is excluded** because it reached end of life on April 30 2026 and no longer receives security patches.
+>
+> **Node 26 is excluded** because Cypress 15.15.0's unzip step (`extract-zip` → `yauzl 2.10.0`) fails on it: it prints "Unzipping Cypress" and stops, *reporting success* while leaving no browser behind — only the separate `cypress verify` step catches it. Verified on Node 26.7.0 (fails) vs 24.19.0 and 22.23.2 (both succeed), August 2026.
+
+If you maintain this project's versions, see **[MAINTENANCE.md](MAINTENANCE.md)** — it has the support-end dates, what triggers an upgrade, the log of which Node/Cypress combinations have been verified, and the exact procedure for checking a new one.
 
 You also need **Google Chrome** installed, since the tests run in Chrome by default. Most computers already have it; if not, get it at [google.com/chrome](https://www.google.com/chrome).
 
@@ -84,19 +90,31 @@ You also need **Google Chrome** installed, since the tests run in Chrome by defa
 
 ## Setup
 
-**Do this once** after downloading the project:
+**Do this once** after downloading the project.
 
-1. Open a terminal and navigate to the folder where you downloaded this project:
+**On Windows, just double-click `First Time Setup.bat`** — it checks (and if needed installs) Node.js, installs dependencies, and downloads the Cypress browser binary. Skip the manual steps below.
+
+Manually, from a terminal:
+
+1. Navigate to the folder where you downloaded this project:
    ```
    cd "path/to/ecommerce-qa-test-suite"
    ```
 
-2. Install the project's dependencies (this downloads Cypress and other tools):
+2. Install the project's dependencies:
    ```
    npm install
    ```
 
-   This may take a minute or two. You only need to do it once (or again if the project's dependencies change).
+3. Download the Cypress browser binary:
+   ```
+   npx cypress install
+   npx cypress verify
+   ```
+
+   **Step 3 is not optional.** Recent npm versions skip install scripts, so Cypress's own `postinstall` never runs and `npm install` alone leaves no test browser — every test run then fails. `First Time Setup.bat` does this for you.
+
+   Together these take a few minutes (the browser binary is ~200 MB). You only need to do it once (or again if the project's dependencies change).
 
 ---
 
@@ -125,11 +143,11 @@ Three older Windows launchers still work if you'd rather watch a plain black win
 
 | Double-click this file | What it does |
 |---|---|
-| **`First Time Setup.bat`** | Run **once**. Checks for Node.js and installs everything the tests need. |
+| **`First Time Setup.bat`** | Run **once**. Installs Node.js if needed, then everything else the tests need. |
 | **`Run All Tests.bat`** | Tests **every store** in Chrome, then shows a PASS/FAIL summary. |
 | **`Run One Store.bat`** | Shows a numbered menu — pick one store to test in Chrome. |
 
-Each launcher checks that setup ran, keeps its window open at the end so you can read the results, and points you to `results\test-results.log`. You still need Node.js and Google Chrome installed (the setup launcher tells you if Node.js is missing).
+Each launcher checks that setup ran, keeps its window open at the end so you can read the results, and points you to `results\test-results.log`. All four call `scripts\ensure-node.bat` first, so Node.js is installed or corrected automatically — you only need **Google Chrome** installed yourself.
 
 The `npm` commands below do the exact same things and are for anyone who prefers a terminal.
 

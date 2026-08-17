@@ -3,6 +3,8 @@
 !/.claude/agents/**
 !/.claude/settings.json
 /node_modules
+/tools
+/installers
 /cypress/downloads
 /cypress/videos
 /cypress/screenshots

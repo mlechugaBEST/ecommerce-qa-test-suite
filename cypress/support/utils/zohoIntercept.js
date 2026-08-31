@@ -1,4 +1,14 @@
 /**
+ * The double gate for real submissions. Both env vars must be true — see CLAUDE.md.
+ * Exported so the per-spec intercept (commands.js) and the stub-mode catch-all (e2e.js)
+ * can never drift apart on what counts as "live".
+ * @returns {boolean}
+ */
+export function isLiveSubmit() {
+  return Cypress.env('LIVE_SUBMIT') === true && Cypress.env('I_KNOW_THIS_IS_LIVE') === true;
+}
+
+/**
  * Intercepts a Zoho form POST.
  * Default (stub) mode: returns a fake 200 with a thank-you body so no real lead is created.
  * Live mode: passes the request through when liveSubmit is true.

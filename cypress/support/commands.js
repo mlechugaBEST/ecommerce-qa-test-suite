@@ -1,5 +1,5 @@
 import { uniqueEmail } from './utils/uniqueEmail.js';
-import { setupZohoIntercept } from './utils/zohoIntercept.js';
+import { setupZohoIntercept, isLiveSubmit } from './utils/zohoIntercept.js';
 import { getStore } from './store.js';
 
 Cypress.Commands.add('uniqueEmail', () => {
@@ -33,10 +33,7 @@ Cypress.Commands.add('fillPersona', (formPage, persona, email) => {
 });
 
 Cypress.Commands.add('interceptZoho', (alias, urlPattern) => {
-  const liveSubmit =
-    Cypress.env('LIVE_SUBMIT') === true &&
-    Cypress.env('I_KNOW_THIS_IS_LIVE') === true;
-  setupZohoIntercept(alias, urlPattern, liveSubmit);
+  setupZohoIntercept(alias, urlPattern, isLiveSubmit());
 });
 
 /**

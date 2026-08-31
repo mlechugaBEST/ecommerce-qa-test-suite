@@ -177,6 +177,20 @@ export const KNOWN_BUGGY_SCRIPTS = [
     messagePattern: /\.fancybox is not a function/,
   },
   {
+    // PDA's contact/quote pages load Zoho's GCLID helper deferred
+    // (forms.zoho.com/js/zf_gclid_live.js) and then call into it from inline page code on a fixed
+    // 500ms timer: setTimeout(function(){ downloadHtmlGclid(); }, 500) -> g_c(GAd.indexValueArr[0]).
+    // When that third-party script has not executed within 500ms, g_c is undefined and the timer
+    // callback throws a ReferenceError with a first-party stack. Purely a network-timing race, so it
+    // is intermittent (~1 run in 3) — and confirmed PRE-EXISTING, not caused by any test change: a
+    // 3x/3x A-B on main vs branch flaked 2/3 on main and 1/3 on the branch. PDA is the ONLY store
+    // with this pattern; the other eight load zf_gclid.js but never call g_c from inline code, so
+    // they have no race. Low-severity and it fires for real users on slow connections too — only the
+    // GCLID attribution value is lost, the form itself submits normally. PDA devs notified: the fix
+    // is to hook the script's load event rather than guess a timer. See stores/pda.json _notes.
+    messagePattern: /g_c is not defined/,
+  },
+  {
     // Klaviyo (email-capture popup) is deliberately left loaded on the stores that use it (AAP, PDA,
     // BRH) because the popup is store-functional (see the AAP/PDA drift notes). Its telemetry
     // (`logMetric`) fire-and-forgets a fetch that fails under Cypress (blocked host / CORS), and

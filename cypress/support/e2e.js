@@ -2,11 +2,55 @@ import './commands';
 import 'cypress-real-events';
 import '@cypress-audit/lighthouse/commands';
 import { blockThirdParty, THIRD_PARTY_HOSTS, KNOWN_BUGGY_SCRIPTS } from './checks';
+import { isLiveSubmit } from './utils/zohoIntercept.js';
 
 // Block analytics/tracking before every test. Mobile specs (testIsolation:false) also call
 // blockThirdParty() in their before() hooks, since that hook runs before this beforeEach.
+//
+// --- Stub-mode Zoho catch-all (safety net) ------------------------------------------------------
+// cy.interceptZoho() only stubs the ONE url pattern a store has configured. When a live form is
+// renamed, that pattern silently stops matching and the POST is no longer intercepted at all — so
+// it reaches Zoho for real and creates a genuine CRM lead, in what is supposed to be stub mode.
+// That is not hypothetical: BESTUS PDPs were re-pointed at BESTCAProductForm in Aug 2026 and
+// product-form.cy.js filed real leads on every run until it was spotted (see CLAUDE.md).
+//
+// So in stub mode we also register a catch-all for ANY Zoho form submit. It is registered here, in
+// a global beforeEach, which runs BEFORE the per-spec cy.interceptZoho() inside the test body.
+// Cypress matches routes in reverse order of definition, so on a healthy store the later, narrower
+// named intercept still wins and aliases behave exactly as before — verified empirically, not
+// assumed. On drift the catch-all absorbs the POST instead: no lead is created, while
+// cy.wait('@submit') still times out and the test still fails, so the red signal is unchanged.
+//
+// KNOWN GAP: cy.expectNoSubmission() also watches the named alias, so it still passes vacuously
+// when a pattern is stale. The catch-all neither helps nor hurts there; the happy-path failure in
+// the same spec is what surfaces the drift.
+let absorbedZohoPosts = [];
+
 beforeEach(() => {
   blockThirdParty();
+
+  absorbedZohoPosts = [];
+  if (isLiveSubmit()) return; // never intercept when the operator has explicitly opted into live
+
+  cy.intercept('POST', '**/forms.zohopublic.com/**/submit', (req) => {
+    absorbedZohoPosts.push(req.url);
+    req.reply({
+      statusCode: 200,
+      body: '<html><body>Thank you for contacting us. We have received your message.</body></html>',
+      headers: { 'content-type': 'text/html' },
+    });
+  });
+});
+
+// cy.task reaches real process stdout, so this shows up in a terminal run and in the dashboard log
+// pane — unlike cy.log(), which is invisible in headless `cypress run`.
+afterEach(() => {
+  if (!absorbedZohoPosts.length) return;
+  const urls = [...new Set(absorbedZohoPosts)].join(', ');
+  cy.task('log',
+    `[zoho-catchall] absorbed ${absorbedZohoPosts.length} Zoho POST(s) that no named intercept ` +
+    `matched — this store's submitUrlPattern no longer matches the live form. No lead was ` +
+    `created. Absorbed: ${urls}`);
 });
 
 // --- BRH document-ready theme bugs --------------------------------------------------------------

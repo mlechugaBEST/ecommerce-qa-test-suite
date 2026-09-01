@@ -22,7 +22,10 @@ export class ProductFormPage extends ZohoFormPage {
     return this;
   }
 
-  // SingleLine2 = Lead Website — intentionally not provided.
-  // Expected to be auto-populated by the page's JS on load.
-  // If validation fails on first run, add fillLeadWebsite() here.
+  // No Lead Website field to fill. These forms used to carry a SingleLine2 "Lead Website" input
+  // (BESTUS hard-coded it to value="Best_Access_Doors") which the suite deliberately left to the
+  // page's own JS. It was removed from the Zoho product forms in Aug 2026 — a deliberate change by
+  // the form owners, and unrelated to the storefront embed mix-up around the same date (see
+  // CLAUDE.md, Stub vs. Live Mode). Verified absent on all 8 stores that have a product form, so
+  // there is nothing to populate here and no fillLeadWebsite() is needed.
 }

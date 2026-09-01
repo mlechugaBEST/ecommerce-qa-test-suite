@@ -131,6 +131,13 @@
       "submitUrlPattern": "**/forms.zohopublic.com/**/CADArchitects/**/submit"
     }
   },
+  "personaOverrides": {
+    "address1": "123 Test Lane",
+    "city": "Houston",
+    "region": "TX",
+    "zip": "77001",
+    "country": "United States"
+  },
   "testEmailTemplate": "testingQA+{ts}@bestaccessdoors.com",
   "discovery": {
     "search": {

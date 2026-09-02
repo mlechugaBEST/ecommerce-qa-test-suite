@@ -108,5 +108,27 @@ describeIfStore(proClubForm, 'Pro Club Application form', () => {
       page.submit();
       cy.expectNoSubmission();
     });
+
+    // Same mechanism as contact-form.cy.js: checks.js stubs /recaptcha/ so an unsolvable v2
+    // checkbox can't block the happy-path POSTs, and this test hands that stub back an EMPTY
+    // response to check the store's own gate blocks submission the way it does for a visitor
+    // who ignored the checkbox.
+    //
+    // This is the form that proves the test is worth having. The gate snippet installs its
+    // listener on document.getElementById('zohoForm'), so it silently does NOTHING unless the
+    // form's id happens to match — and on Sept 1 2026 this page's form was id='form' (contact's
+    // was already id='zohoForm'), so `if (!form) return` short-circuited and the widget rendered
+    // while blocking nothing at all. It was fixed overnight (confirmed by the store owner): as of
+    // Sept 2 2026 the id is 'zohoForm', the gate enforces, and this test passes. Nothing LOOKS
+    // different between the two states — the widget renders either way — so a one-word template
+    // edit can disarm the captcha with no visible symptom. That is what this test watches for.
+    itIfStore(proClubForm && proClubForm.hasRecaptcha, 'does not submit until the reCAPTCHA is completed', () => {
+      cy.uniqueEmail().then((email) => {
+        cy.window().then((w) => { w.grecaptcha = { ...w.grecaptcha, getResponse: () => '' }; });
+        cy.fillPersona(page, persona, email);
+        page.submit();
+        cy.expectNoSubmission();
+      });
+    }, "store's Pro Club form has no reCAPTCHA gate (forms.proClub.hasRecaptcha)");
   });
 });

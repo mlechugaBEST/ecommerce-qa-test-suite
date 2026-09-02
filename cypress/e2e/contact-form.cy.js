@@ -116,5 +116,23 @@ describeIfStore(contactForm, 'Contact Us form', () => {
       page.submit();
       cy.expectNoSubmission();
     });
+
+    // Every other test in this file gets past the store's reCAPTCHA gate because checks.js
+    // stubs /recaptcha/ with a grecaptcha whose getResponse() returns a token — without that,
+    // a v2 checkbox no automated run can solve blocks every happy-path POST (BESTUS
+    // /contact-us/, Sept 2026). Here we hand that stub back an EMPTY response instead, which is
+    // exactly what a visitor who ignored the checkbox produces, and assert the gate does its
+    // job. Worth asserting rather than assuming: the snippet only installs its listener if the
+    // form's id matches the one it looks up, and BESTUS's /pro-club-application/ shipped for a
+    // day with an id that didn't match — widget rendered, gate disarmed, nothing to see. See the
+    // matching test in pro-club-form.cy.js.
+    itIfStore(contactForm && contactForm.hasRecaptcha, 'does not submit until the reCAPTCHA is completed', () => {
+      cy.uniqueEmail().then((email) => {
+        cy.window().then((w) => { w.grecaptcha = { ...w.grecaptcha, getResponse: () => '' }; });
+        cy.fillPersona(page, persona, email);
+        page.submit();
+        cy.expectNoSubmission();
+      });
+    }, "store's contact form has no reCAPTCHA gate (forms.contact.hasRecaptcha)");
   });
 });

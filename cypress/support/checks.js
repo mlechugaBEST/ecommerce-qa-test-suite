@@ -61,7 +61,11 @@ export const pickRandom = (list) => list[Math.floor(Math.random() * list.length)
 // Most entries stub to an empty 204 (`body` omitted); a few need a real script body instead,
 // because the live site's own first-party bootstrap code assumes the blocked script already ran
 // and executes a follow-up call against a global it defines — see the gaconnector entry below
-// for a documented example.
+// for a documented example, and the reCAPTCHA entry at the end for the stronger form of it, where
+// the stubbed global also has to RETURN what the page's code is testing for.
+//
+// Not every entry is a tracker: the reCAPTCHA entry stubs a functional widget, because a challenge
+// no automated run can pass otherwise blocks the form submissions the specs exist to verify.
 export const THIRD_PARTY_HOSTS = [
   // Analytics / tag managers
   { pattern: /google-analytics\.com/ },
@@ -102,12 +106,48 @@ export const THIRD_PARTY_HOSTS = [
   // the vendor script itself. Non-essential to any test (form specs don't exercise tax-exempt),
   // so stub it to 204 and it never runs.
   { pattern: /door-pay\.com/ },
+
+  // Bot-protection widgets — functional, not tracking. Stubbed anyway, because an unsolvable
+  // human-verification challenge blocks the very submission the form specs exist to verify.
+  {
+    // Google reCAPTCHA v2 checkbox. BESTUS added one to /contact-us/ (found Sept 1 2026) together
+    // with its own inline gate: a submit listener that preventDefault()s while
+    // grecaptcha.getResponse() === ''. A v2 checkbox cannot be solved by automation — nor by a
+    // human mid-run — so the POST never left the browser and all three happy-path tests failed
+    // with cy.wait('@submit') "No request ever occurred" while every validation test still passed
+    // (Zoho's own onSubmit handler runs upstream of the gate). Serve a stand-in that defines the
+    // global with a NON-EMPTY token, so the site's gate falls through to zf_ValidateAndSubmit()
+    // and the form POSTs exactly as it did before the widget was added — same "the page's own code
+    // expects this global to exist" case as the gaconnector entry above, one step further: here we
+    // also have to satisfy what that code asks the global.
+    //
+    // Deliberately applies in LIVE_SUBMIT mode too (blockThirdParty runs unconditionally): this
+    // sitekey is the storefront's own client-side gate, NOT Zoho's captcha, and Zoho's endpoint
+    // never verifies it — so a live submission lands the same real lead it always did.
+    //
+    // Also the one entry here matched on a PATH segment rather than a host, so it covers
+    // www.google.com/recaptcha/api.js, the recaptcha.net mirror and gstatic's
+    // /recaptcha/releases/* sub-resources at once. It collides with no store-functional URL, and
+    // as a stack pattern in e2e.js's uncaught:exception handler it can only match Google's own
+    // widget code.
+    //
+    // Per-form presence is recorded as forms.<name>.hasRecaptcha in the store config, which gates
+    // the "does not submit until the reCAPTCHA is completed" test that checks the gate is really
+    // enforced (contact-form.cy.js / pro-club-form.cy.js). See CLAUDE.md Global Setup.
+    pattern: /\/recaptcha\//,
+    body:
+      'window.grecaptcha = { getResponse: function () { return "cypress-stub-token"; }, ' +
+      'render: function () { return 0; }, reset: function () {}, execute: function () {}, ' +
+      'ready: function (cb) { cb(); } };',
+  },
 ];
 
 /**
  * Stubs every THIRD_PARTY_HOSTS request so it resolves cleanly instead of rejecting and logging
  * "Failed to fetch" to console.error — an empty 204 by default, or a real script `body` for the
- * few hosts where that's not enough (see THIRD_PARTY_HOSTS above).
+ * few hosts where that's not enough (see THIRD_PARTY_HOSTS above): either the page's own code
+ * calls a global the blocked script was meant to define (gaconnector), or it also reads that
+ * global's return value to decide whether to proceed (reCAPTCHA's submit gate).
  *
  * Registered globally in e2e.js `beforeEach` for specs that visit inside each test. Mobile specs
  * that share one visit under `testIsolation:false` must ALSO call this at the top of their `before()`

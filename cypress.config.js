@@ -33,11 +33,15 @@ for (const key of ["storeCode", "baseUrl", "homePath"]) {
 // introduced (see the Nullable-section contract in CLAUDE.md).
 const KNOWN_TOP_LEVEL_KEYS = [
   "storeCode", "baseUrl", "homePath", "visitQuery", "branding", "plp", "products",
-  "discovery", "pdp", "forms", "testEmailTemplate", "personaOverrides",
+  "discovery", "pdp", "checkout", "forms", "testEmailTemplate", "personaOverrides",
   "_todo", "_notes", "_absentFeatures",
 ];
 const KNOWN_FORMS_KEYS = [
   "contact", "quoteRequest", "proClub", "productInfo", "architectInquiries", "becomeVendor",
+];
+const KNOWN_CHECKOUT_KEYS = [
+  "path", "product", "quantity", "signInLinkText", "minShippingOptions",
+  "newAddressLinkText", "addressSettleMs", "customFields", "consoleIgnore", "selectors",
 ];
 for (const key of Object.keys(site)) {
   if (!KNOWN_TOP_LEVEL_KEYS.includes(key)) {
@@ -57,6 +61,26 @@ if (site.forms && typeof site.forms === "object") {
     }
   }
 }
+// Same check for checkout.*, and worth having for the same reason: a typo'd "selectrs" silently
+// falls all the way back to CHECKOUT_SELECTOR_DEFAULTS and then fails with a pile of confusing
+// "element not found" errors on a store that had correctly overridden them. The truthiness guard
+// comes first because typeof null === "object".
+if (site.checkout && typeof site.checkout === "object") {
+  for (const key of Object.keys(site.checkout)) {
+    if (!KNOWN_CHECKOUT_KEYS.includes(key)) {
+      console.warn(
+        `[stores/${STORE}.json] unrecognized "checkout.${key}" — typo? ` +
+        `(expected one of: ${KNOWN_CHECKOUT_KEYS.join(", ")})`
+      );
+    }
+  }
+}
+
+// Checkout sign-in credentials for THIS store only. Resolved Node-side (OS env var >
+// credentials.json) so that only the ACTIVE store's pair ever reaches the browser — see the
+// comment on the env: block below for why that matters.
+const { resolveCheckoutCredentials } = require("./scripts/resolveCheckoutCredentials");
+const checkoutCreds = resolveCheckoutCredentials(STORE, __dirname);
 
 module.exports = defineConfig({
   allowCypressEnv: true,
@@ -83,11 +107,22 @@ module.exports = defineConfig({
     // gate that silently stays stubbed. Coercing "true"→true here (not the raw string) keeps the
     // strict `=== true` double-gate honest: both must be genuinely set. The dashboard strips both
     // vars from the child env before spawn, so a dashboard run coerces to false → stub-only.
+    //
+    // CHECKOUT_EMAIL / CHECKOUT_PASSWORD follow the same forward-and-resolve pattern, and NOT the
+    // CYPRESS_-prefix auto-import that PRODUCT_URL/RANDOMIZE_PRODUCT use. That choice is
+    // load-bearing: CYPRESS_ auto-import pulls in EVERY CYPRESS_* var present, so on a machine
+    // provisioned for the whole fleet a single-store run would load all nine stores' passwords
+    // into Cypress.env() — and into the `cypress open` Settings panel. Resolving Node-side keeps
+    // the blast radius at one store, the one actually under test. They are siblings of `site`,
+    // never merged into it: getStore() is handed to page objects and its contents get logged in
+    // places a password must not reach.
     env: {
       site,
       STORE,
       LIVE_SUBMIT: process.env.LIVE_SUBMIT === "true",
       I_KNOW_THIS_IS_LIVE: process.env.I_KNOW_THIS_IS_LIVE === "true",
+      CHECKOUT_EMAIL: checkoutCreds ? checkoutCreds.email : null,
+      CHECKOUT_PASSWORD: checkoutCreds ? checkoutCreds.password : null,
     },
 
     setupNodeEvents(on, config) {

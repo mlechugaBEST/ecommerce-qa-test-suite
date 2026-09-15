@@ -39,6 +39,38 @@ too - see "OLD WAY" near the bottom.)
 
 
 ------------------------------------------------------------
+  STEP 1b - THE CHECKOUT TEST PASSWORD  (optional)
+------------------------------------------------------------
+
+  One test pretends to be a real customer buying something:
+  it puts an item in the cart, goes to checkout, and signs in.
+  It stops before paying - it never places a real order.
+
+  Because it signs in, it needs the test account's email and
+  password. Those are NOT in this folder, on purpose.
+
+  To turn it on:
+
+    1. Find the file:   credentials.example.json
+    2. Make a copy of it in this same folder.
+    3. Rename the copy to:   credentials.json
+    4. Open it in Notepad and replace the REPLACE_ME bits
+       with the sign-in details you were given.
+    5. Save. That's it - every way of running the tests
+       picks it up automatically.
+
+  Ask whoever set this up for the details. They are kept in
+  the team password manager.
+
+  IMPORTANT: never email credentials.json, never put it in a
+  shared folder, and never send it in a chat message.
+
+  If you skip this step, nothing breaks. Everything else still
+  runs, and the checkout test simply shows as "skipped" - which
+  is not a failure.
+
+
+------------------------------------------------------------
   STEP 2 - OPEN THE DASHBOARD  (the easy way)
 ------------------------------------------------------------
 
@@ -65,6 +97,10 @@ too - see "OLD WAY" near the bottom.)
     - PASS (green)   = working
     - FAIL (red/orange) = something is broken - click to see
     - pending / skipped = turned off on purpose (not a problem)
+        e.g. a store that doesn't have that form, or the
+        checkout test when this computer has no sign-in
+        details (see STEP 1b). The reason is written right
+        in the test's name, in square brackets.
 
   The "History" tab shows every past run.
 

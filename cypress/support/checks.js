@@ -249,6 +249,25 @@ export const KNOWN_BUGGY_SCRIPTS = [
     // entirely (see the wrapper's comment in makeConsoleErrorSpy and the note in e2e.js).
     messagePattern: /Failed to fetch/,
   },
+  {
+    // PayPal's checkout SDK, on the BigCommerce checkout page. PayPal is deliberately NOT in
+    // THIRD_PARTY_HOSTS (it is store-functional — an express-checkout payment option customers
+    // really use), so it runs for real during checkout.cy.js.
+    //
+    // The bug is a race inside PayPal's own bundle, not anything first-party: checkout-js renders
+    // the express-checkout buttons into #paypalcommerceCheckoutButton /
+    // #paypalcommercecreditCheckoutButton on the CUSTOMER step, and the moment you click "Sign in
+    // now" it swaps the guest form for the returning-customer form and those containers leave the
+    // DOM. PayPal's SDK is still mid-render and throws "Document is ready and element
+    // #paypalcommercecreditCheckoutButton does not exist" (verified live on BESTUS, Sept 2026).
+    //
+    // Harmless: the button simply is not drawn, because the step it belonged to is gone. It fires
+    // for real customers who click "Sign in now" quickly too, and the payment step re-renders its
+    // own PayPal buttons later. Matched by STACK (paypal.com/sdk/js), the same shape as the Zoho
+    // SalesIQ entry at the top of this list — a vendor script left running on purpose that carries
+    // a known internal bug of its own.
+    stackPattern: /paypal\.com\/sdk\/js/,
+  },
 ];
 
 // NOTE on BRH's document-ready theme bugs (.trim()-on-undefined, "$ is not a function"): those are

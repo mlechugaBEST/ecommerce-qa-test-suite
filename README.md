@@ -94,6 +94,8 @@ You also need **Google Chrome** installed, since the tests run in Chrome by defa
 
 **On Windows, just double-click `First Time Setup.bat`** — it checks (and if needed installs) Node.js, installs dependencies, and downloads the Cypress browser binary. Skip the manual steps below.
 
+**Optional, one extra step for the checkout test:** `checkout.cy.js` signs in as a real test customer, so it needs credentials that are deliberately not in this repo. Copy `credentials.example.json` to `credentials.json` (gitignored) and fill it in, or set `CHECKOUT_EMAIL_<CODE>` / `CHECKOUT_PASSWORD_<CODE>`. Without it that one test shows as skipped — not failed — and everything else runs normally. See `MAINTENANCE.md` §8.
+
 Manually, from a terminal:
 
 1. Navigate to the folder where you downloaded this project:
@@ -244,6 +246,8 @@ Skips are always deliberate and always visible — a skipped test means a config
 | What's pending | Why | Enable by |
 |---|---|---|
 | All 3 Lighthouse audits | The spec self-skips outside Chrome | Already runs — every command and launcher defaults to Chrome. Only pending if you override with `--browser firefox`. |
+| The checkout flow test | This machine holds no checkout sign-in credentials | Copy `credentials.example.json` to `credentials.json` and fill it in, or set `CHECKOUT_EMAIL_<CODE>` / `CHECKOUT_PASSWORD_<CODE>`. Configured on BESTUS only so far; the other eight stores show it as "not configured" until onboarded. |
+| `checkout.cy.js`'s console-error check | `checkout.consoleIgnore` is `null` on every store — the checkout page's console noise has not been triaged | Triage the errors on that store, then set `checkout.consoleIgnore` to the list worth ignoring. |
 
 **ADAP's skips (June 2026), as a worked example:**
 

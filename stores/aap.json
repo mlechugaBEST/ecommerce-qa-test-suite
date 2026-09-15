@@ -1,5 +1,6 @@
 {
   "_notes": "Configured June 2026. AAP runs the SearchSpring Snap theme (ul.ss__results, .ss__pagination__*). Category taxonomy: /fire-rated/, /flush/, /recessed/, etc. (no /products/ umbrella); NOT flat - nested child categories exist (verified live July 2026 via xmlsitemap.php?type=categories), deepest under /specialty/ (2-3 levels, e.g. /specialty/glass-fiber-doors/glass-fiber-reinforced-gypsum-radius-corner/). Category pages DO render server-side subcategory tiles (.subCategoriesBox with span.navList-action title + a.navList-action link) - the June 2026 'no subcategory boxes / flat taxonomy' note was wrong (only /fire-rated/ was inspected). subcategory suite runs against plp.subcategory=/fire-rated/fbr-5060-fire-rated-uninsulated-removable-panel/ (child of /fire-rated/, breadcrumb contains 'Fire-Rated'). No pro-club form (/pro-club-application/ 404s). Qty stepper buttons absent (no data-action inc/dec; bare .form-increment input). Related carousel is SS recommendation (.ss__recommendation--carousel). Footer: bare <footer> with .box h3 headings, div.copyright for copyright text; phone in footer-bottom-col (1 tel: link). Mobile nav is #mySidenav. LIGHTHOUSE (calibrated July 2 2026, live scores homepage a11y 66 / plp 73 / pdp 64): theme structurally below a healthy a11y score, but clears the fleet-wide accessibility:60 floor (no per-store override). Partly tied to the known sub-44px touch-target deficiency (mobile header hamburger 23px / logo 12px, tallest interactive el ~26px). July 22 2026: the AAP dev team reviewed the touch-target gap and chose to keep the header as-is, so the mobile touch-target tests are now SKIPPED in every browser via branding.skipTouchTarget:true (sanctioned team-decision exception to the leave-it-failing policy). Lighthouse best-practices is no longer asserted fleet-wide (dropped July 22 2026 — platform-level, non-actionable; AAP PDP had scored 58).",
+  "_todo": "checkout: not yet onboarded. Fill the `checkout` section per stores/bestus.json once (a) a QA customer account exists on this storefront and its credentials are wired in (CHECKOUT_EMAIL_<CODE>/CHECKOUT_PASSWORD_<CODE> or a credentials.json entry), and (b) a purchasable, in-stock, option-free, parcel-shippable product slug has been verified live. Onboard one store at a time, only after BESTUS runs green. Enables checkout.cy.js.",
   "_absentFeatures": [
     {
       "configKey": "forms.proClub",
@@ -171,5 +172,6 @@
       "pdfNewTab": true
     },
     "_popularNote": "pdp.popular and products.known are independent lists and need not overlap; the 22-x-30 popular URL was verified live (200) July 2 2026."
-  }
+  },
+  "checkout": null
 }

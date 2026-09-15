@@ -199,3 +199,95 @@ rejected version and went around `ensure-node.bat` (usually by running
 `npm run test:all` straight from a terminal instead of using a launcher).
 `scripts/nodeGate.js` exists to make that visible; it warns and never blocks,
 because `cypress run` itself is fine on Node 26 — only `cypress install` breaks.
+
+## 8. Checkout test credentials
+
+`checkout.cy.js` signs in as a real customer on the live storefront. It is the only
+spec in this repo that needs a secret, and the only one that mutates live store
+state (a cart). Policy, in short: **the password never enters the repo.**
+
+### Where the values live
+
+The QA team password manager. Not in `stores/*.json`, not in a `.bat`, not in a
+commit message, not in a ticket. Every `.bat` in this repo is tracked by git, so
+"just set it in the launcher" is the one tempting idea that must be refused.
+
+Operators get them into a run in one of three ways, resolved **per field**, first
+non-empty wins (`scripts/resolveCheckoutCredentials.js`):
+
+1. `CHECKOUT_EMAIL_<CODE>` / `CHECKOUT_PASSWORD_<CODE>` OS env vars — CI, or a
+   per-user `setx` on a shared machine.
+2. `%LOCALAPPDATA%\BestAccessDoorsTests\credentials.json` — the per-user path.
+   **Use this on UNC/network-share deployments**, where the repo folder itself is
+   readable by everyone with share access. Same rationale as `ensure-node.bat`'s
+   `EN_ALT` fallback.
+3. `<repo>\credentials.json` — the ordinary local case. Gitignored.
+
+`credentials.example.json` is the committed template and holds placeholders only —
+no real email, since an email is half a credential.
+
+Absent or half-configured credentials make the spec **skip with a stated reason**,
+never fail. A machine with no secret still exits 0. A copied-but-unedited template
+also skips: `REPLACE_ME`-style placeholders are treated as absent, so nobody ever
+attempts a real sign-in with the literal string `REPLACE_ME`.
+
+### Requirements for the account itself
+
+- A dedicated test customer, not a real person's account, on a mailbox someone
+  actually monitors (order/abandoned-cart mail lands there).
+- **No saved payment method.** The spec stops before payment and an order guard
+  blocks the endpoints, but the account should be worthless if the password leaks.
+- No admin rights. Assume the password is recoverable from a browser context on a
+  live storefront that loads third-party scripts, and make that not matter.
+- **The address book is shared, and the spec must never add to it.** `checkout.cy.js`
+  types its own shipping address rather than using whichever one is saved, and keeps
+  "Save this address in my address book" unchecked. It logs the saved-address count
+  every run (`address book holds N saved address(es)`). N is already large — 28 on
+  BESTUS as of Sept 15 2026, all from other teams' manual testing — so the number
+  itself means nothing; what matters is that it does **not grow between two
+  back-to-back runs**. If it does, `selectors.saveAddressCheckbox` has drifted and
+  every run is now writing to a shared account.
+
+### Rotation
+
+1. Change it in the BigCommerce admin.
+2. Update the password manager.
+3. Update each machine's `credentials.json` / CI secret.
+
+Rotate immediately if a password ever reaches a commit, a screenshot, a chat, or a
+ticket. **Rotate first, clean up second** — rewriting history is cleanup, not
+remediation.
+
+### Onboarding store #2 through #9
+
+Only after BESTUS is green, and one store at a time:
+
+1. Confirm a QA customer account exists on that storefront; add it to the password
+   manager and to `credentials.json`.
+2. Verify live a `checkout.product` slug that is priced, in stock, option-free and
+   parcel-shippable. This is a **stricter** contract than `products.known` /
+   `pdp.popular` — a call-for-pricing or freight-only SKU quotes zero shipping
+   options and stalls the flow.
+3. Fill the `checkout` section per `stores/bestus.json`, replacing the `_todo`.
+4. Run the spec. Expect to calibrate two things per store: `checkout.selectors`
+   (theme drift) and `checkout.customFields` (store-specific required checkout
+   fields — BigCommerce marks these required only in the label TEXT, never with a
+   `required` attribute, and a missed one silently stops the carrier quote).
+5. Leave `consoleIgnore: null` until the console noise is actually triaged.
+
+Two stores need a judgement call first: **BRH** is `pdp.quoteOnly` with no Add to
+Cart anywhere, so it may have no checkout journey at all; **PDA**'s catalog is four
+placeholder products. Verify live before assuming either way.
+
+### Leak surfaces to keep in mind when editing
+
+- `cy.type(password, { log: false })` and `cy.request({ …, log: false })` are
+  **mandatory**. Cypress records the command log into the run video and writes a
+  screenshot on failure, and no value masking exists in the 15.15 binary.
+- Never pass a credential to `cy.task('log', …)`: that reaches real stdout,
+  `results/test-results.log`, and the dashboard's live log pane (which streams
+  child stdout to a browser).
+- Never put a credential in a test title — titles are written to the run summary.
+- `cypress open` renders resolved config including `env`, so one store's pair is
+  visible there. Accepted and bounded: only the active store's pair is ever
+  injected. `DEBUG=cypress:*` is similarly verbose — avoid it on a shared screen.

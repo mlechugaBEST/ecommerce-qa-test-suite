@@ -42,6 +42,7 @@ const KNOWN_FORMS_KEYS = [
 const KNOWN_CHECKOUT_KEYS = [
   "path", "product", "quantity", "signInLinkText", "minShippingOptions",
   "newAddressLinkText", "addressSettleMs", "customFields", "consoleIgnore", "selectors",
+  "placeOrder",
 ];
 for (const key of Object.keys(site)) {
   if (!KNOWN_TOP_LEVEL_KEYS.includes(key)) {
@@ -121,11 +122,37 @@ module.exports = defineConfig({
       STORE,
       LIVE_SUBMIT: process.env.LIVE_SUBMIT === "true",
       I_KNOW_THIS_IS_LIVE: process.env.I_KNOW_THIS_IS_LIVE === "true",
+      // Order placement — a SEPARATE double gate from LIVE_SUBMIT (which consents to a Zoho lead,
+      // never to spending store credit on a real order). Re-asserted in setupNodeEvents below;
+      // see the comment there for why setting them here is not sufficient on its own.
+      PLACE_ORDER: process.env.PLACE_ORDER === "true",
+      I_KNOW_THIS_PLACES_ORDERS: process.env.I_KNOW_THIS_PLACES_ORDERS === "true",
       CHECKOUT_EMAIL: checkoutCreds ? checkoutCreds.email : null,
       CHECKOUT_PASSWORD: checkoutCreds ? checkoutCreds.password : null,
     },
 
     setupNodeEvents(on, config) {
+      // ORDER-PLACEMENT ARMING IS A FUNCTION OF THE PARENT PROCESS ENV, AND NOTHING ELSE.
+      //
+      // The env: block above is Cypress's LOWEST-precedence source. cypress.env.json (auto-loaded,
+      // gitignored, and carrying real JSON booleans that would satisfy the strict === true check),
+      // CYPRESS_-prefixed OS vars, and `--env` on the command line all override it. setupNodeEvents
+      // runs after every one of those merges and its returned config wins, so re-asserting here is
+      // what actually makes the gate hold.
+      //
+      // This is not theoretical tidiness. scripts/dashboard/server.js guarantees a dashboard run
+      // cannot place an order by deleting these variables from the child env — it can delete a
+      // variable, but it cannot delete a file sitting in the repo. Without this block, dropping a
+      // two-line cypress.env.json next to the tests would arm every dashboard run silently.
+      config.env.PLACE_ORDER = process.env.PLACE_ORDER === "true";
+      config.env.I_KNOW_THIS_PLACES_ORDERS = process.env.I_KNOW_THIS_PLACES_ORDERS === "true";
+      if (config.env.PLACE_ORDER && config.env.I_KNOW_THIS_PLACES_ORDERS) {
+        console.warn(
+          `\n  *** ARMED FOR ORDER PLACEMENT (${STORE}) ***\n` +
+          `  This run may submit a REAL BigCommerce order paid from the QA account's store\n` +
+          `  credit. Any order it creates must be cancelled by hand in the admin.\n`);
+      }
+
       // Required inside setupNodeEvents so prepareAudit and lighthouse share the same
       // module instance (and thus the same internal launchArgs closure variable).
       const { lighthouse, prepareAudit } = require("@cypress-audit/lighthouse");
@@ -156,6 +183,12 @@ module.exports = defineConfig({
           return null;
         },
       });
+
+      // REQUIRED, not decorative. Cypress applies setupNodeEvents' config changes only from the
+      // RETURNED object — mutating the argument in place is silently discarded. Without this line
+      // the order-placement re-assertion above would do nothing and cypress.env.json could arm a
+      // run again. Verified by checking that an armed cypress.env.json still skips the suite.
+      return config;
     }
   },
 });

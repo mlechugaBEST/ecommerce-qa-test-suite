@@ -46,6 +46,14 @@ too - see "OLD WAY" near the bottom.)
   it puts an item in the cart, goes to checkout, and signs in.
   It stops before paying - it never places a real order.
 
+  That is true for EVERYTHING you can start from these
+  launchers or from the Test Dashboard. There is a separate
+  command, meant for the technical team only, that does place
+  a real order to check the payment step works end to end.
+  It cannot be started by accident: it needs two switches set
+  on the command line, and the dashboard deliberately removes
+  them. Nothing you double-click here can order anything.
+
   Because it signs in, it needs the test account's email and
   password. Those are NOT in this folder, on purpose.
 

@@ -321,11 +321,31 @@ const CHECKOUT_SELECTOR_DEFAULTS = {
     'input[type="radio"][name^="shippingOptionIds"], .shippingOptionsList input[type="radio"], ' +
     '.shippingOptions-container input[type="radio"]',
 
-  // Payment step — ASSERTION TARGET ONLY. Nothing in this suite ever submits it: CheckoutPage has
-  // no placeOrder() method, and the order guard in e2e.js blocks the endpoint regardless. The
-  // assertion deliberately rides on the step container going active rather than on any inner
-  // payment-provider markup, which varies per store and per enabled gateway.
+  // Payment step. `paymentSubmit` is the "Place Order" button: an ASSERTION TARGET on the normal
+  // path (CheckoutPage has no placeOrder() method), clicked only by utils/placeOrder.js on an
+  // explicitly armed run. The step-reached assertion deliberately rides on the step container
+  // going active rather than on inner payment-provider markup, which varies per store and gateway.
   paymentSubmit: '#checkout-payment-continue',
+
+  // VERIFIED LIVE on BESTUS (Sept 15 2026) by dumping the rendered payment step. Nullable: set any
+  // of these to null on a store whose theme/gateway mix lacks the element and its check skips.
+  //
+  // paymentMethodOption — BigCommerce renders enabled gateways as a radio checklist. BESTUS shows
+  // five (paypalcommerce, paypalcommercecredit, paypalcommercecreditcards, amazonpay, googlepay).
+  // Asserting "at least one" catches a store whose gateways have all fallen out of the page — a
+  // customer-can't-pay outage — without encoding which gateways are enabled today.
+  paymentMethodOption: 'ul.form-checklist li.form-checklist-item',
+
+  // storeCreditCheckbox — "Apply $N store credit to order". Ships CHECKED when the account holds
+  // credit, so nothing needs to click it; its label carries the amount actually applied.
+  storeCreditCheckbox: '#useStoreCredit',
+
+  // storeCreditOverlay — "Payment is not required for this order.", rendered OVER the gateway
+  // checklist only when store credit covers the whole balance. This is the honest signal that no
+  // real payment instrument is in play: a credit-card method stays selected underneath, so if the
+  // balance ever runs short this overlay disappears and Place Order would charge a real card.
+  // utils/placeOrder.js treats its presence as a hard precondition.
+  storeCreditOverlay: '[data-test="payment-store-credit-overlay"]',
 };
 
 /** The store's checkout selectors: BigCommerce defaults merged with checkout.selectors. */

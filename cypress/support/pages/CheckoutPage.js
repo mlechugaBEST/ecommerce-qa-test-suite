@@ -15,8 +15,13 @@ import { storePath, checkoutSelectors, checkoutConfig } from '../store.js';
  * wrong one. The only thing worth reusing, storePath(), comes from store.js — which ZohoFormPage
  * itself merely imports.
  *
- * THERE IS DELIBERATELY NO placeOrder() / submitPayment() METHOD. Adding one would be the only way
- * to file a real order from this suite, and e2e.js's order guard would block it anyway.
+ * THERE IS DELIBERATELY NO placeOrder() / submitPayment() METHOD, and there must never be one.
+ * `paymentSubmit` is already resolved and asserted visible on the ordinary stop-at-payment path,
+ * so a click living on this class would put a real order one stray `.click()` away in an object
+ * every checkout test holds. Order submission lives in utils/placeOrder.js instead — a module that
+ * must be explicitly imported, self-gates on the CLI arming flags, and is the only thing that can
+ * open the order guard's network window. The test that must never order simply does not have the
+ * capability, which is a stronger guarantee than remembering not to use it.
  */
 export class CheckoutPage {
   // Injected with defaults, mirroring ProductFormPage (the only other page object with a
@@ -66,8 +71,13 @@ export class CheckoutPage {
     return this;
   }
 
-  signIn(email, password) {
-    this.openSignIn();
+  /**
+   * Fills the returning-customer form and clicks Sign In. Split out of signIn() so the bounded
+   * re-attempt below can reuse it verbatim — a retry that re-types is what is wanted, because the
+   * most likely reason the first attempt did nothing is that checkout-js re-rendered the form
+   * under it and took the typed values with it.
+   */
+  submitSignInForm(email, password) {
     cy.get(this.sel.emailInput, { timeout: 20000 })
       .should('be.visible')
       .clear({ force: true })
@@ -84,6 +94,52 @@ export class CheckoutPage {
       // cypress/videos/<store>/ and cypress/screenshots/<store>/ on every single run.
       .type(password, { force: true, log: false });
     cy.get(this.sel.signInSubmit).first().click({ force: true });
+    return this;
+  }
+
+  /**
+   * Polls until the customer step shows the signed-in email, up to ~15s. Tolerant by design —
+   * it reports rather than asserts, because signIn() wants to decide whether to re-attempt and
+   * assertSignedIn() is what ultimately judges.
+   */
+  waitForSignedIn(email, attempt = 0) {
+    return cy.get('body').then(($b) => {
+      if ($b.find(this.sel.customerStep).text().includes(email)) return undefined;
+      if (attempt >= 30) return undefined;
+      cy.wait(500);
+      return this.waitForSignedIn(email, attempt + 1);
+    });
+  }
+
+  /**
+   * Signs in, with ONE bounded re-attempt.
+   *
+   * WHY THE RETRY EXISTS (measured, Sept 15 2026): the submit is a force-click on a React form,
+   * and a force-click lands even when checkout-js is mid-re-render — in which case it does
+   * nothing at all and the only symptom is assertSignedIn timing out 30s later against a customer
+   * step that still reads "Returning Customer / Email / Password / Sign In". Observed twice in one
+   * armed run, which signs in twice because the spec runs the funnel for both its tests.
+   *
+   * Deliberately re-attempted HERE rather than left to the suite-wide retries:{runMode:2}: the
+   * armed order-placement test runs at retries:0 (a retry there could file a second real order),
+   * so it has no other recovery, and a whole-funnel retry costs ~90s to recover from a swallowed
+   * click. Bounded to one extra attempt and logged loudly — if this line starts appearing every
+   * run it is a real sign-in regression, not flake, and must be investigated rather than absorbed.
+   */
+  signIn(email, password) {
+    this.openSignIn();
+    this.submitSignInForm(email, password);
+    this.waitForSignedIn(email);
+    cy.get('body').then(($b) => {
+      if ($b.find(this.sel.customerStep).text().includes(email)) return;
+      // Only re-attempt while the form is genuinely still on screen. If it has gone, sign-in is
+      // in flight or has landed some other way and a second submit would be noise.
+      if (!$b.find(this.sel.emailInput).filter(':visible').length) return;
+      cy.task('log',
+        '[CheckoutPage] sign-in did not take on the first submit — re-attempting once ' +
+        '(see signIn() — a persistent occurrence is a regression, not flake)');
+      this.submitSignInForm(email, password);
+    });
     return this;
   }
 
@@ -528,6 +584,61 @@ export class CheckoutPage {
     cy.get(`${this.sel.paymentStep}.${this.sel.activeStepClass}`, { timeout: 60000 })
       .should('exist');
     cy.get(this.sel.paymentSubmit, { timeout: 30000 }).should('be.visible');
+    return this;
+  }
+
+  /**
+   * The server's view of the checkout, as a chainable yielding the parsed body.
+   *
+   * The checkout id IS the cart id (verified live — /api/storefront/carts returns an id that
+   * /api/storefront/checkouts/<id> answers 200 for), so callers pass the id they already hold from
+   * the add-to-cart step rather than parsing one out of the page.
+   *
+   * An /api/ path, which is the only kind cy.request may touch on this storefront: it answers 406
+   * to any HTML route requested with cy.request's default wildcard Accept header.
+   *
+   * WHY THIS EXISTS: the DOM assertions on this step can only see what the theme chose to render.
+   * The payload is what BigCommerce will actually bill, ship and tax, so it is the honest place to
+   * assert that the address the spec typed is the address the order would ship to.
+   */
+  readCheckout(cartId) {
+    // Fail with the actual diagnosis rather than letting BigCommerce answer it. A missing id
+    // requests /checkouts/undefined, which comes back 401 "Checkout Id `undefined` does not
+    // exist" — a wall of headers and cookies that reads like an auth or session problem and sends
+    // you looking in entirely the wrong place. It has happened twice; both times the cause was a
+    // caller evaluating its id at command-ENQUEUE time, before the step that assigns it had run.
+    if (!cartId) {
+      throw new Error(
+        'readCheckout() got no cart id. The caller almost certainly captured it at enqueue time — ' +
+        'read it inside cy.then(), or pass a getter, so it resolves after the add-to-cart step.');
+    }
+    return cy.request(`/api/storefront/checkouts/${cartId}`).its('body');
+  }
+
+  /**
+   * Payment-step contents: at least one gateway offered, and the store-credit control that
+   * placeOrder.js depends on. Assertion only — nothing here selects a method.
+   *
+   * SELECTING A METHOD IS DELIBERATELY NOT DONE. Clicking a gateway radio can trigger hosted-field
+   * tokenization or a PayPal redirect, and PayPal's SDK is deliberately left unblocked on this page
+   * (see KNOWN_BUGGY_SCRIPTS in checks.js). Presence is the signal worth having; interacting buys
+   * nothing and risks leaving the page in a state the next assertion misreads.
+   */
+  assertPaymentOptions() {
+    if (this.sel.paymentMethodOption) {
+      cy.get(this.sel.paymentMethodOption, { timeout: 30000 })
+        .should('have.length.at.least', 1);
+    }
+    if (this.sel.storeCreditCheckbox) {
+      // Presence, not checked-state: an account with no credit left still renders the payment step
+      // perfectly well, and that is placeOrder.js's problem to refuse, not this test's to fail on.
+      cy.get(this.sel.storeCreditCheckbox).should('exist').then(($box) => {
+        const label = $box.siblings(`label[for="${$box.attr('id')}"]`).text().trim();
+        cy.task('log',
+          `[CheckoutPage] store credit control: checked=${$box.is(':checked')} ` +
+          `label="${label || '(no label found)'}"`);
+      });
+    }
     return this;
   }
 }

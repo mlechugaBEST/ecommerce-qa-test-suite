@@ -235,8 +235,19 @@ attempts a real sign-in with the literal string `REPLACE_ME`.
 
 - A dedicated test customer, not a real person's account, on a mailbox someone
   actually monitors (order/abandoned-cart mail lands there).
-- **No saved payment method.** The spec stops before payment and an order guard
-  blocks the endpoints, but the account should be worthless if the password leaks.
+- **No saved payment method.** The ordinary run stops before payment and the order
+  guard blocks the endpoints, but the account should be worthless if the password leaks.
+  This matters more now than it used to: see the store-credit section below, where a
+  *selected* credit-card method sits underneath the store-credit overlay.
+- **Store credit, kept topped up** — only on a store whose config sets
+  `checkout.placeOrder`. The armed order test (§8b) pays entirely from the QA
+  customer's store-credit balance, and that balance is consumed by every order it
+  places. On BESTUS one order costs about **$28** (the customer group's price list
+  zeroes the product itself, so what is payable is shipping + tax). When the balance
+  no longer covers the total the test **refuses to order and fails loudly** rather than
+  falling through to a real card — but that is a stop, not a safety net you want to
+  rely on. Top it up in the BigCommerce admin under the customer's **Store Credit**
+  field. Every armed run logs the amount applied, so the trend is visible in the log.
 - No admin rights. Assume the password is recoverable from a browser context on a
   live storefront that loads third-party scripts, and make that not matter.
 - **The address book is shared, and the spec must never add to it.** `checkout.cy.js`
@@ -278,6 +289,58 @@ Only after BESTUS is green, and one store at a time:
 Two stores need a judgement call first: **BRH** is `pdp.quoteOnly` with no Add to
 Cart anywhere, so it may have no checkout journey at all; **PDA**'s catalog is four
 placeholder products. Verify live before assuming either way.
+
+### 8b. The armed order test, and the manual cleanup it creates
+
+`checkout.cy.js` carries a nested suite that places a **real BigCommerce order**. It
+is skipped on every ordinary run and cannot be started from the launchers or the Test
+Dashboard. Arming it takes three things at once:
+
+1. `PLACE_ORDER=true` **and** `I_KNOW_THIS_PLACES_ORDERS=true` in the **parent process
+   environment** — `npm run test:checkout-order` sets both. A `cypress.env.json`,
+   a `CYPRESS_`-prefixed variable or `--env` on the command line will **not** arm it:
+   `cypress.config.js` re-asserts both flags from `process.env` inside `setupNodeEvents`,
+   whose returned config wins over all three. (Falsified: with an armed `cypress.env.json`
+   planted in the repo root, the flags still read `false`.)
+2. `checkout.placeOrder` in that store's `stores/<code>.json` — a committed, reviewable
+   opt-in that no environment variable can set. It exists because `run-all.js` fans one
+   parent env out to all nine stores, and one armed command must not become "order on
+   every onboarded store".
+3. The usual checkout credentials.
+
+**Someone has to cancel the orders.** There is no automated cleanup — cancelling would
+need a Management API token, which is a new secret and a wider blast radius than the
+orders themselves. So, after any armed run:
+
+- Find the order in the BigCommerce admin against the QA customer and cancel it. The
+  run log prints `[placeOrder] ORDER PLACED — order #…` and `[order-guard] ALLOWED …`
+  naming the submitted URL; both reach `results/test-results.log`.
+- **Check "Incomplete" orders too.** A run that fails mid-submit can leave an incomplete
+  order, and the admin's default filter hides those.
+- A failed armed run **may or may not** have placed an order. Check the admin before
+  re-running, or you will be cancelling two. This is not hypothetical: on Sept 15 2026
+  a run went red on `expected '/cart.php' to include 'order-confirmation'` and had
+  nevertheless created the order — the submission succeeded server-side and only the
+  post-order navigation failed. **`[order-guard] ALLOWED` in the log is the definitive
+  tell that an order was submitted**, regardless of whether the test passed; the
+  `[placeOrder] ORDER PLACED` banner only appears when the flow also completed.
+
+**What cancellation does not undo:** order creation fires BigCommerce's `store/order/*`
+webhooks immediately — customer confirmation email, staff notification, and anything
+subscribed downstream (ERP, fulfilment, shipping, CRM). Confirm that subscriber list
+with whoever owns those integrations before arming a store for the first time; the
+product under test is a real physical item with a real shipping address on it.
+
+**Three interlocks guard the click**, and all three must hold — the CLI gate above, the
+server's own numbers (`isStoreCreditApplied` true and `outstandingBalance` zero, read
+before submitting because the checkout resource disappears once the order exists), and
+the DOM's `"Payment is not required for this order."` overlay. The third is not
+redundant: a credit-card method stays **selected underneath** that overlay, so the day
+store credit stops covering the balance the overlay vanishes and the same click would
+charge a real card. The order-submission guard itself stays registered even on an armed
+run — `utils/placeOrder.js` opens a window around the single click and shuts it again,
+so every other request in the run is still guarded, and every submission that does go
+out is recorded.
 
 ### Leak surfaces to keep in mind when editing
 

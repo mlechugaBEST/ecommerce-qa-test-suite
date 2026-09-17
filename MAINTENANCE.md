@@ -199,3 +199,158 @@ rejected version and went around `ensure-node.bat` (usually by running
 `npm run test:all` straight from a terminal instead of using a launcher).
 `scripts/nodeGate.js` exists to make that visible; it warns and never blocks,
 because `cypress run` itself is fine on Node 26 — only `cypress install` breaks.
+
+## 8. Checkout test credentials
+
+`checkout.cy.js` signs in as a real customer on the live storefront. It is the only
+spec in this repo that needs a secret, and the only one that mutates live store
+state (a cart). Policy, in short: **the password never enters the repo.**
+
+### Where the values live
+
+The QA team password manager. Not in `stores/*.json`, not in a `.bat`, not in a
+commit message, not in a ticket. Every `.bat` in this repo is tracked by git, so
+"just set it in the launcher" is the one tempting idea that must be refused.
+
+Operators get them into a run in one of three ways, resolved **per field**, first
+non-empty wins (`scripts/resolveCheckoutCredentials.js`):
+
+1. `CHECKOUT_EMAIL_<CODE>` / `CHECKOUT_PASSWORD_<CODE>` OS env vars — CI, or a
+   per-user `setx` on a shared machine.
+2. `%LOCALAPPDATA%\BestAccessDoorsTests\credentials.json` — the per-user path.
+   **Use this on UNC/network-share deployments**, where the repo folder itself is
+   readable by everyone with share access. Same rationale as `ensure-node.bat`'s
+   `EN_ALT` fallback.
+3. `<repo>\credentials.json` — the ordinary local case. Gitignored.
+
+`credentials.example.json` is the committed template and holds placeholders only —
+no real email, since an email is half a credential.
+
+Absent or half-configured credentials make the spec **skip with a stated reason**,
+never fail. A machine with no secret still exits 0. A copied-but-unedited template
+also skips: `REPLACE_ME`-style placeholders are treated as absent, so nobody ever
+attempts a real sign-in with the literal string `REPLACE_ME`.
+
+### Requirements for the account itself
+
+- A dedicated test customer, not a real person's account, on a mailbox someone
+  actually monitors (order/abandoned-cart mail lands there).
+- **No saved payment method.** The ordinary run stops before payment and the order
+  guard blocks the endpoints, but the account should be worthless if the password leaks.
+  This matters more now than it used to: see the store-credit section below, where a
+  *selected* credit-card method sits underneath the store-credit overlay.
+- **Store credit, kept topped up** — only on a store whose config sets
+  `checkout.placeOrder`. The armed order test (§8b) pays entirely from the QA
+  customer's store-credit balance, and that balance is consumed by every order it
+  places. On BESTUS one order costs about **$28** (the customer group's price list
+  zeroes the product itself, so what is payable is shipping + tax). When the balance
+  no longer covers the total the test **refuses to order and fails loudly** rather than
+  falling through to a real card — but that is a stop, not a safety net you want to
+  rely on. Top it up in the BigCommerce admin under the customer's **Store Credit**
+  field. Every armed run logs the amount applied, so the trend is visible in the log.
+- No admin rights. Assume the password is recoverable from a browser context on a
+  live storefront that loads third-party scripts, and make that not matter.
+- **The address book is shared, and the spec must never add to it.** `checkout.cy.js`
+  types its own shipping address rather than using whichever one is saved, and keeps
+  "Save this address in my address book" unchecked. It logs the saved-address count
+  every run (`address book holds N saved address(es)`). N is already large — 28 on
+  BESTUS as of Sept 15 2026, all from other teams' manual testing — so the number
+  itself means nothing; what matters is that it does **not grow between two
+  back-to-back runs**. If it does, `selectors.saveAddressCheckbox` has drifted and
+  every run is now writing to a shared account.
+
+### Rotation
+
+1. Change it in the BigCommerce admin.
+2. Update the password manager.
+3. Update each machine's `credentials.json` / CI secret.
+
+Rotate immediately if a password ever reaches a commit, a screenshot, a chat, or a
+ticket. **Rotate first, clean up second** — rewriting history is cleanup, not
+remediation.
+
+### Onboarding store #2 through #9
+
+Only after BESTUS is green, and one store at a time:
+
+1. Confirm a QA customer account exists on that storefront; add it to the password
+   manager and to `credentials.json`.
+2. Verify live a `checkout.product` slug that is priced, in stock, option-free and
+   parcel-shippable. This is a **stricter** contract than `products.known` /
+   `pdp.popular` — a call-for-pricing or freight-only SKU quotes zero shipping
+   options and stalls the flow.
+3. Fill the `checkout` section per `stores/bestus.json`, replacing the `_todo`.
+4. Run the spec. Expect to calibrate two things per store: `checkout.selectors`
+   (theme drift) and `checkout.customFields` (store-specific required checkout
+   fields — BigCommerce marks these required only in the label TEXT, never with a
+   `required` attribute, and a missed one silently stops the carrier quote).
+5. Leave `consoleIgnore: null` until the console noise is actually triaged.
+
+Two stores need a judgement call first: **BRH** is `pdp.quoteOnly` with no Add to
+Cart anywhere, so it may have no checkout journey at all; **PDA**'s catalog is four
+placeholder products. Verify live before assuming either way.
+
+### 8b. The armed order test, and the manual cleanup it creates
+
+`checkout.cy.js` carries a nested suite that places a **real BigCommerce order**. It
+is skipped on every ordinary run and cannot be started from the launchers or the Test
+Dashboard. Arming it takes three things at once:
+
+1. `PLACE_ORDER=true` **and** `I_KNOW_THIS_PLACES_ORDERS=true` in the **parent process
+   environment** — `npm run test:checkout-order` sets both. A `cypress.env.json`,
+   a `CYPRESS_`-prefixed variable or `--env` on the command line will **not** arm it:
+   `cypress.config.js` re-asserts both flags from `process.env` inside `setupNodeEvents`,
+   whose returned config wins over all three. (Falsified: with an armed `cypress.env.json`
+   planted in the repo root, the flags still read `false`.)
+2. `checkout.placeOrder` in that store's `stores/<code>.json` — a committed, reviewable
+   opt-in that no environment variable can set. It exists because `run-all.js` fans one
+   parent env out to all nine stores, and one armed command must not become "order on
+   every onboarded store".
+3. The usual checkout credentials.
+
+**Someone has to cancel the orders.** There is no automated cleanup — cancelling would
+need a Management API token, which is a new secret and a wider blast radius than the
+orders themselves. So, after any armed run:
+
+- Find the order in the BigCommerce admin against the QA customer and cancel it. The
+  run log prints `[placeOrder] ORDER PLACED — order #…` and `[order-guard] ALLOWED …`
+  naming the submitted URL; both reach `results/test-results.log`.
+- **Check "Incomplete" orders too.** A run that fails mid-submit can leave an incomplete
+  order, and the admin's default filter hides those.
+- A failed armed run **may or may not** have placed an order. Check the admin before
+  re-running, or you will be cancelling two. This is not hypothetical: on Sept 15 2026
+  a run went red on `expected '/cart.php' to include 'order-confirmation'` and had
+  nevertheless created the order — the submission succeeded server-side and only the
+  post-order navigation failed. **`[order-guard] ALLOWED` in the log is the definitive
+  tell that an order was submitted**, regardless of whether the test passed; the
+  `[placeOrder] ORDER PLACED` banner only appears when the flow also completed.
+
+**What cancellation does not undo:** order creation fires BigCommerce's `store/order/*`
+webhooks immediately — customer confirmation email, staff notification, and anything
+subscribed downstream (ERP, fulfilment, shipping, CRM). Confirm that subscriber list
+with whoever owns those integrations before arming a store for the first time; the
+product under test is a real physical item with a real shipping address on it.
+
+**Three interlocks guard the click**, and all three must hold — the CLI gate above, the
+server's own numbers (`isStoreCreditApplied` true and `outstandingBalance` zero, read
+before submitting because the checkout resource disappears once the order exists), and
+the DOM's `"Payment is not required for this order."` overlay. The third is not
+redundant: a credit-card method stays **selected underneath** that overlay, so the day
+store credit stops covering the balance the overlay vanishes and the same click would
+charge a real card. The order-submission guard itself stays registered even on an armed
+run — `utils/placeOrder.js` opens a window around the single click and shuts it again,
+so every other request in the run is still guarded, and every submission that does go
+out is recorded.
+
+### Leak surfaces to keep in mind when editing
+
+- `cy.type(password, { log: false })` and `cy.request({ …, log: false })` are
+  **mandatory**. Cypress records the command log into the run video and writes a
+  screenshot on failure, and no value masking exists in the 15.15 binary.
+- Never pass a credential to `cy.task('log', …)`: that reaches real stdout,
+  `results/test-results.log`, and the dashboard's live log pane (which streams
+  child stdout to a browser).
+- Never put a credential in a test title — titles are written to the run summary.
+- `cypress open` renders resolved config including `env`, so one store's pair is
+  visible there. Accepted and bounded: only the active store's pair is ever
+  injected. `DEBUG=cypress:*` is similarly verbose — avoid it on a shared screen.

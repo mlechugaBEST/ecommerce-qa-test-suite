@@ -10,6 +10,7 @@
     "test:store": "node scripts/run-store.js",
     "test:all": "node scripts/run-all.js",
     "test:live": "cross-env LIVE_SUBMIT=true I_KNOW_THIS_IS_LIVE=true cypress run --browser chrome",
+    "test:checkout-order": "cross-env PLACE_ORDER=true I_KNOW_THIS_PLACES_ORDERS=true cypress run --browser chrome --spec cypress/e2e/checkout.cy.js",
     "dashboard": "node scripts/dashboard/server.js"
   },
   "devDependencies": {

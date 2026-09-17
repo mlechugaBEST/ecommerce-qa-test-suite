@@ -13,8 +13,25 @@
  *  - It does NOT reimplement how Cypress runs. It spawns the existing runners
  *    (scripts/run-all.js and scripts/run-store.js), so the after:run hook keeps
  *    writing results/test-results.log and results/.run-summary/<store>.json.
- *  - Stub mode only: it never sets LIVE_SUBMIT / I_KNOW_THIS_IS_LIVE, so the UI
- *    can never create real CRM leads. Live submission stays CLI-only.
+ *  - Stub mode only for CRM submissions: it never sets LIVE_SUBMIT /
+ *    I_KNOW_THIS_IS_LIVE, so the UI can never create real Zoho leads. Live
+ *    submission stays CLI-only.
+ *  - It DOES pass the checkout sign-in credentials (CHECKOUT_EMAIL_* /
+ *    CHECKOUT_PASSWORD_*) through to the child, on purpose: the checkout spec is
+ *    meant to run here like any other spec. So "stub mode" is NOT a blanket
+ *    no-side-effects guarantee — a dashboard run really does sign in to a real
+ *    test customer account on the live storefront and create a cart (which
+ *    checkout.cy.js deletes again in its afterEach hook). Do not "fix" that
+ *    asymmetry by stripping CHECKOUT_*.
+ *  - It DOES strip PLACE_ORDER / I_KNOW_THIS_PLACES_ORDERS, so a dashboard run
+ *    can never submit a real order or spend the QA account's store credit.
+ *    Order placement is CLI-only. Note the guarantee now rests on those two
+ *    deletes rather than on the order guard alone: since the guard gained an
+ *    explicitly-armed path, "the guard blocks everything" is no longer true in
+ *    general — it is true here precisely because the child is never armed.
+ *    cypress.config.js re-asserts both flags from the parent process env inside
+ *    setupNodeEvents, which is what stops a cypress.env.json file (which this
+ *    file cannot delete) from arming the child anyway.
  *  - One run at a time (Cypress is heavy): a run lock returns 409 while busy.
  */
 const http = require('http');
@@ -308,6 +325,17 @@ function startRun({ stores, specsByStore }) {
   const childEnv = { ...process.env, FORCE_COLOR: '' };
   delete childEnv.LIVE_SUBMIT; // hard guarantee: dashboard is stub-only
   delete childEnv.I_KNOW_THIS_IS_LIVE;
+  // Same hard guarantee for order placement: a dashboard run can sign in and build a cart, but it
+  // can never submit an order or spend the QA account's store credit. Deleting these is sufficient
+  // because cypress.config.js re-asserts both from the PARENT process env inside setupNodeEvents,
+  // so a stray cypress.env.json or CYPRESS_-prefixed var cannot arm the child behind our back.
+  delete childEnv.PLACE_ORDER;
+  delete childEnv.I_KNOW_THIS_PLACES_ORDERS;
+  // CHECKOUT_EMAIL_* / CHECKOUT_PASSWORD_* are deliberately NOT deleted here — see the stub-mode
+  // note in the file header. Deleting them would not make the dashboard safer (the order guard in
+  // cypress/support/e2e.js is what prevents a real order); it would silently turn the checkout
+  // spec into a permanent "[skipped: checkout credentials not on this machine]" that nobody would
+  // notice for months.
 
   // Two shapes of run:
   //  - specsByStore present → re-run failed specs: one run-store per store.

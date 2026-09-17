@@ -3,6 +3,9 @@ import 'cypress-real-events';
 import '@cypress-audit/lighthouse/commands';
 import { blockThirdParty, THIRD_PARTY_HOSTS, KNOWN_BUGGY_SCRIPTS } from './checks';
 import { isLiveSubmit } from './utils/zohoIntercept.js';
+import {
+  closeOrderWindow, isOrderWindowOpen, recordAllowedOrderPost, takeAllowedOrderPosts,
+} from './utils/orderGuard.js';
 
 // Block analytics/tracking before every test. Mobile specs (testIsolation:false) also call
 // blockThirdParty() in their before() hooks, since that hook runs before this beforeEach.
@@ -26,8 +29,88 @@ import { isLiveSubmit } from './utils/zohoIntercept.js';
 // the same spec is what surfaces the drift.
 let absorbedZohoPosts = [];
 
+// --- Order-submission guard (ALWAYS ON) ---------------------------------------------------------
+// checkout.cy.js drives a real BigCommerce checkout on a LIVE storefront, signed in as a real
+// customer, and deliberately stops at the payment step. This guard is what keeps that contract true
+// through future edits: rather than trusting a spec (or a later edit to one, or a stray Enter on a
+// focused form) never to submit, an order submission is made impossible to honor at the network
+// layer. Test orders here are recoverable — they don't reach fulfilment and the team knows they're
+// from a test account — so a trip is a "fix the spec" signal, not an incident.
+//
+// UNCONDITIONAL, and registered BELOW blockThirdParty() but ABOVE the isLiveSubmit() early return
+// further down. LIVE_SUBMIT + I_KNOW_THIS_IS_LIVE is the operator's consent to file a real Zoho
+// CRM *lead*; it has never meant "place an order", and nothing in the launchers or dashboard offers
+// order consent. Registering this after that early return would disarm it in precisely the mode
+// where an order is possible. Same reasoning as checks.js's /recaptcha/ THIRD_PARTY_HOSTS entry,
+// which also deliberately applies in live mode.
+//
+// THE INTERCEPT IS *ALWAYS* REGISTERED, EVEN ON A RUN ARMED FOR ORDER PLACEMENT. An earlier design
+// skipped registration entirely when isPlaceOrder() was true; that is strictly worse. It would
+// remove the guard process-wide — every spec, every test, every retry — in precisely the run where
+// the checkout page is being driven with intent to submit, including from the stop-at-payment test
+// whose whole premise is stopping short. Instead utils/placeOrder.js opens a narrow window around
+// the single click (the same idiom as CheckoutPage's switchingAddress suppression), and a handler
+// that returns WITHOUT calling req.reply() passes the request through — so the handler stays
+// strictly synchronous and every submission that does go out is still recorded and reported.
+//
+// PATTERNS VERIFIED, NOT GUESSED: grepped out of the live checkout-sdk bundle
+// (checkout-sdk.bigcommerce.com/v1/checkout-sdk-*.js, Sept 2026). Those are the only two
+// submission endpoints it carries. Earlier drafts of this list also had /api/storefront/orders,
+// /api/storefront/checkouts/*/orders and finishorder.php — none appear anywhere in the bundle, so
+// they were a guard that would have caught nothing while reading as though it covered everything.
+//
+// NO INTERACTION WITH THE ZOHO CATCH-ALL: these patterns are disjoint from
+// **/forms.zohopublic.com/**/submit, so Cypress's reverse-order route matching is untouched and the
+// later, narrower per-spec cy.interceptZoho() alias still wins for Zoho POSTs exactly as before.
+const ORDER_SUBMIT_PATTERNS = [
+  '**/internalapi/v1/checkout/order*',  // checkout-sdk order submission
+  '**/api/public/v1/orders/payments*',  // payment submission
+];
+let blockedOrderPosts = [];
+
 beforeEach(() => {
   blockThirdParty();
+
+  blockedOrderPosts = [];
+  // Every test starts with the window shut, so an armed run that fails partway through cannot
+  // leave it open for whatever test happens to run next.
+  closeOrderWindow();
+  ORDER_SUBMIT_PATTERNS.forEach((pattern) => {
+    cy.intercept('POST', pattern, (req) => {
+      // The only path by which an order submission reaches BigCommerce from this suite. Returning
+      // without replying lets the request continue untouched; it is recorded either way, so the
+      // run log names every order that was actually submitted even if the test later fails.
+      if (isOrderWindowOpen()) {
+        recordAllowedOrderPost(`${req.method} ${req.url}`);
+        // RETURN WITHOUT TOUCHING THE REQUEST OR RESPONSE. Nothing clever belongs here.
+        //
+        // A version of this called req.continue((res) => …) to lift the placed order's id out of
+        // the response. It cost a real order to learn why that is wrong: req.continue with a
+        // callback makes Cypress buffer the whole response before releasing it, and checkout-js
+        // then failed to navigate to the confirmation page — the order was created server-side
+        // (cart consumed) while the browser fell back to /cart.php, so the run went red on an
+        // order that had actually succeeded. That is the worst possible failure shape here: a red
+        // test AND a real order, with the log claiming neither. The order id is worth having, but
+        // never at the cost of interfering with the one request that must behave exactly as it
+        // does for a real customer.
+        return;
+      }
+      // Strictly synchronous. A route handler that returns a promise it leaves rejected surfaces as
+      // "An error was thrown in your route handler" and kills the hook — the same class of failure
+      // documented at the foot of this file for AUT-frame code. No async, no promise construction.
+      //
+      // reply(503) rather than req.destroy(): both guarantee zero bytes reach BigCommerce, but a
+      // destroyed socket surfaces in the SPA as an opaque network error that looks like real flake
+      // in the video, and some SDK paths retry it silently. An explicit 5xx with a self-describing
+      // body renders as a visible checkout error, so the screenshot says why.
+      blockedOrderPosts.push(`${req.method} ${req.url}`);
+      req.reply({
+        statusCode: 503,
+        body: { title: 'Blocked by the QA harness — this suite never submits an order.' },
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+  });
 
   absorbedZohoPosts = [];
   if (isLiveSubmit()) return; // never intercept when the operator has explicitly opted into live
@@ -51,6 +134,38 @@ afterEach(() => {
     `[zoho-catchall] absorbed ${absorbedZohoPosts.length} Zoho POST(s) that no named intercept ` +
     `matched — this store's submitUrlPattern no longer matches the live form. No lead was ` +
     `created. Absorbed: ${urls}`);
+});
+
+// Deliberately a SECOND afterEach rather than an addition to the one above: that hook opens with
+// `if (!absorbedZohoPosts.length) return;`, so anything appended to it would be skipped on every
+// run where no Zoho POST was absorbed — i.e. essentially always, which is exactly when this needs
+// to fire.
+afterEach(() => {
+  // Reported before the early return below, because an ALLOWED submission and a BLOCKED one are
+  // independent events: an armed run normally produces the first and none of the second.
+  const allowed = takeAllowedOrderPosts();
+  if (allowed.length) {
+    cy.task('log',
+      `[order-guard] ALLOWED ${allowed.length} order-submission POST(s) — this run was armed for ` +
+      `order placement and a REAL ORDER was submitted. Cancel it in the BigCommerce admin. ` +
+      `Submitted: ${[...new Set(allowed)].join(', ')}`);
+  }
+
+  if (!blockedOrderPosts.length) return;
+  const urls = [...new Set(blockedOrderPosts)].join(', ');
+  cy.task('log',
+    `[order-guard] BLOCKED ${blockedOrderPosts.length} order-submission POST(s) — a spec reached ` +
+    `BigCommerce's order endpoint. No order was created and no payment was taken. ` +
+    `Blocked: ${urls}`);
+  // Queued via cy.then, not thrown inline: a synchronous throw here would abort the command queue
+  // BEFORE the cy.task('log') above ever runs, losing the one line that names the URL.
+  cy.then(() => {
+    throw new Error(
+      `Order-submission guard tripped: ${blockedOrderPosts.length} POST(s) to ${urls}. ` +
+      `On an unarmed run every spec must stop at the payment step. Order placement happens only ` +
+      `through utils/placeOrder.js, which opens the guard's window explicitly — reaching this ` +
+      `endpoint by any other route is a bug in the spec, not a missing env var.`);
+  });
 });
 
 // --- BRH document-ready theme bugs --------------------------------------------------------------

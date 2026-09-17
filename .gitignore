@@ -11,3 +11,13 @@
 /presentation.md
 /.vscode
 /results
+
+# Local secrets — never commit. See credentials.example.json for the shape.
+# Deliberately UNANCHORED (no leading /), unlike the entries above, so a copy made in a
+# subfolder is ignored too. cypress.env.json and .env* are pure safety nets: this repo uses
+# neither, but Cypress auto-loads the first and half the tutorials on the internet tell people
+# to create the second.
+credentials.json
+cypress.env.json
+.env
+.env.*

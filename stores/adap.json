@@ -1,5 +1,6 @@
 {
   "_notes": "Configured from the live site (June 2026). Quirks: /products/ root 301s to an external subdomain, so plp.main is the Access Doors category; no Pro Club; quote form lives at /new-request-a-quote/; theme differs from BESTUS (footer-v2, .Info-box contact column, plain .breadcrumbs, no sidebar .categories-left, no related-products carousel, product form in #crmWebToEntityForm). Verified live July 2 2026: breadcrumbs carry a.breadcrumb-label (incl. Home) on PLP+PDP — breadcrumbHome/breadcrumbLabel filled; PLP pagination is AngularJS-rendered .ss-pagination-container > ul.pagination-list > li.pagination-item (active: .pagination-item--current, links: a.pagination-link, next: .pagination-item--next a, ?p=2) — plp.selectors.pagination filled; sort hash #/sort:searchspring_price:asc re-confirmed. LIGHTHOUSE: single fleet-wide LIGHTHOUSE_THRESHOLDS floor (performance 50, accessibility 60, seo 65) applied uniformly — per-store/per-page overrides removed July 2026; best-practices no longer asserted (dropped July 22 2026, platform-level/non-actionable). Live a11y scores homepage 83 / plp 73 / pdp 76 all clear the 60 floor. July 21 2026: dropped discovery.categories '/shop-by-size/access-doors-panels/' — it is a SearchSpring Angular 'shop by size' grid whose card images use ng-src/data-src lazyload with no src attr (visibility:hidden until scrolled), so assertProductCards' img-src check fails. Standard SS-template category pages (e.g. /products/access-doors/application/, /bilco/basement-door/) render .card-figure img with a resolved src and pass; kept those. KNOWN THEME BUG (verified July 27 2026): PDP theme calls jQuery.fancybox() before the lightbox plugin script has loaded (script-order/timing race) → 'jQuery(...).fancybox is not a function' TypeError at document-ready — a first-party theme bug (fires for real users on the same race), low-severity (product-gallery lightbox). Suppressed via a KNOWN_BUGGY_SCRIPTS messagePattern (/.fancybox is not a function/) in checks.js. ADAP devs must load the fancybox plugin before calling it.",
+  "_todo": "checkout: not yet onboarded. Fill the `checkout` section per stores/bestus.json once (a) a QA customer account exists on this storefront and its credentials are wired in (CHECKOUT_EMAIL_<CODE>/CHECKOUT_PASSWORD_<CODE> or a credentials.json entry), and (b) a purchasable, in-stock, option-free, parcel-shippable product slug has been verified live. Onboard one store at a time, only after BESTUS runs green. Enables checkout.cy.js.",
   "_absentFeatures": [
     {
       "configKey": "forms.proClub",
@@ -176,5 +177,6 @@
       "reviewsContainer": "#yotpo-reviews-main-widget",
       "pdfNewTab": false
     }
-  }
+  },
+  "checkout": null
 }

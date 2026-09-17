@@ -33,11 +33,16 @@ for (const key of ["storeCode", "baseUrl", "homePath"]) {
 // introduced (see the Nullable-section contract in CLAUDE.md).
 const KNOWN_TOP_LEVEL_KEYS = [
   "storeCode", "baseUrl", "homePath", "visitQuery", "branding", "plp", "products",
-  "discovery", "pdp", "forms", "testEmailTemplate", "personaOverrides",
+  "discovery", "pdp", "checkout", "forms", "testEmailTemplate", "personaOverrides",
   "_todo", "_notes", "_absentFeatures",
 ];
 const KNOWN_FORMS_KEYS = [
   "contact", "quoteRequest", "proClub", "productInfo", "architectInquiries", "becomeVendor",
+];
+const KNOWN_CHECKOUT_KEYS = [
+  "path", "product", "quantity", "signInLinkText", "minShippingOptions",
+  "newAddressLinkText", "addressSettleMs", "customFields", "consoleIgnore", "selectors",
+  "placeOrder",
 ];
 for (const key of Object.keys(site)) {
   if (!KNOWN_TOP_LEVEL_KEYS.includes(key)) {
@@ -57,6 +62,26 @@ if (site.forms && typeof site.forms === "object") {
     }
   }
 }
+// Same check for checkout.*, and worth having for the same reason: a typo'd "selectrs" silently
+// falls all the way back to CHECKOUT_SELECTOR_DEFAULTS and then fails with a pile of confusing
+// "element not found" errors on a store that had correctly overridden them. The truthiness guard
+// comes first because typeof null === "object".
+if (site.checkout && typeof site.checkout === "object") {
+  for (const key of Object.keys(site.checkout)) {
+    if (!KNOWN_CHECKOUT_KEYS.includes(key)) {
+      console.warn(
+        `[stores/${STORE}.json] unrecognized "checkout.${key}" — typo? ` +
+        `(expected one of: ${KNOWN_CHECKOUT_KEYS.join(", ")})`
+      );
+    }
+  }
+}
+
+// Checkout sign-in credentials for THIS store only. Resolved Node-side (OS env var >
+// credentials.json) so that only the ACTIVE store's pair ever reaches the browser — see the
+// comment on the env: block below for why that matters.
+const { resolveCheckoutCredentials } = require("./scripts/resolveCheckoutCredentials");
+const checkoutCreds = resolveCheckoutCredentials(STORE, __dirname);
 
 module.exports = defineConfig({
   allowCypressEnv: true,
@@ -83,14 +108,51 @@ module.exports = defineConfig({
     // gate that silently stays stubbed. Coercing "true"→true here (not the raw string) keeps the
     // strict `=== true` double-gate honest: both must be genuinely set. The dashboard strips both
     // vars from the child env before spawn, so a dashboard run coerces to false → stub-only.
+    //
+    // CHECKOUT_EMAIL / CHECKOUT_PASSWORD follow the same forward-and-resolve pattern, and NOT the
+    // CYPRESS_-prefix auto-import that PRODUCT_URL/RANDOMIZE_PRODUCT use. That choice is
+    // load-bearing: CYPRESS_ auto-import pulls in EVERY CYPRESS_* var present, so on a machine
+    // provisioned for the whole fleet a single-store run would load all nine stores' passwords
+    // into Cypress.env() — and into the `cypress open` Settings panel. Resolving Node-side keeps
+    // the blast radius at one store, the one actually under test. They are siblings of `site`,
+    // never merged into it: getStore() is handed to page objects and its contents get logged in
+    // places a password must not reach.
     env: {
       site,
       STORE,
       LIVE_SUBMIT: process.env.LIVE_SUBMIT === "true",
       I_KNOW_THIS_IS_LIVE: process.env.I_KNOW_THIS_IS_LIVE === "true",
+      // Order placement — a SEPARATE double gate from LIVE_SUBMIT (which consents to a Zoho lead,
+      // never to spending store credit on a real order). Re-asserted in setupNodeEvents below;
+      // see the comment there for why setting them here is not sufficient on its own.
+      PLACE_ORDER: process.env.PLACE_ORDER === "true",
+      I_KNOW_THIS_PLACES_ORDERS: process.env.I_KNOW_THIS_PLACES_ORDERS === "true",
+      CHECKOUT_EMAIL: checkoutCreds ? checkoutCreds.email : null,
+      CHECKOUT_PASSWORD: checkoutCreds ? checkoutCreds.password : null,
     },
 
     setupNodeEvents(on, config) {
+      // ORDER-PLACEMENT ARMING IS A FUNCTION OF THE PARENT PROCESS ENV, AND NOTHING ELSE.
+      //
+      // The env: block above is Cypress's LOWEST-precedence source. cypress.env.json (auto-loaded,
+      // gitignored, and carrying real JSON booleans that would satisfy the strict === true check),
+      // CYPRESS_-prefixed OS vars, and `--env` on the command line all override it. setupNodeEvents
+      // runs after every one of those merges and its returned config wins, so re-asserting here is
+      // what actually makes the gate hold.
+      //
+      // This is not theoretical tidiness. scripts/dashboard/server.js guarantees a dashboard run
+      // cannot place an order by deleting these variables from the child env — it can delete a
+      // variable, but it cannot delete a file sitting in the repo. Without this block, dropping a
+      // two-line cypress.env.json next to the tests would arm every dashboard run silently.
+      config.env.PLACE_ORDER = process.env.PLACE_ORDER === "true";
+      config.env.I_KNOW_THIS_PLACES_ORDERS = process.env.I_KNOW_THIS_PLACES_ORDERS === "true";
+      if (config.env.PLACE_ORDER && config.env.I_KNOW_THIS_PLACES_ORDERS) {
+        console.warn(
+          `\n  *** ARMED FOR ORDER PLACEMENT (${STORE}) ***\n` +
+          `  This run may submit a REAL BigCommerce order paid from the QA account's store\n` +
+          `  credit. Any order it creates must be cancelled by hand in the admin.\n`);
+      }
+
       // Required inside setupNodeEvents so prepareAudit and lighthouse share the same
       // module instance (and thus the same internal launchArgs closure variable).
       const { lighthouse, prepareAudit } = require("@cypress-audit/lighthouse");
@@ -121,6 +183,12 @@ module.exports = defineConfig({
           return null;
         },
       });
+
+      // REQUIRED, not decorative. Cypress applies setupNodeEvents' config changes only from the
+      // RETURNED object — mutating the argument in place is silently discarded. Without this line
+      // the order-placement re-assertion above would do nothing and cypress.env.json could arm a
+      // run again. Verified by checking that an armed cypress.env.json still skips the suite.
+      return config;
     }
   },
 });

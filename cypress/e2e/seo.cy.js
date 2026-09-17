@@ -1,4 +1,4 @@
-import { assertMetaTags, assertProductJsonLd, blockThirdParty, pickRandom } from '../support/checks.js';
+import { assertMetaTags, assertProductJsonLd, blockThirdParty, isQuoteOnlyProduct, pickRandom } from '../support/checks.js';
 import { getStore, describeIfStore, itIfStore, storePath, homePath, pdpSelectors } from '../support/store.js';
 
 const site = getStore();
@@ -51,7 +51,7 @@ describeIfStore(site.pdp, 'SEO – PDP', { testIsolation: false }, () => {
     cy.log(`**PDP under test:** ${pdpUrl}`);
     cy.visit(pdpUrl);
     cy.get('body').then(($body) => {
-      quoteOnlyProduct = $body.find(sel.addToCart).length === 0;
+      quoteOnlyProduct = isQuoteOnlyProduct($body, sel.addToCart, sel.price);
       if (quoteOnlyProduct) {
         cy.task('log', `[seo.cy.js] detected quote-only product, skipping offers.price/priceCurrency/availability: ${pdpUrl}`);
       }

@@ -217,18 +217,40 @@ export const KNOWN_BUGGY_SCRIPTS = [
     messagePattern: /\.fancybox is not a function/,
   },
   {
-    // PDA's contact/quote pages load Zoho's GCLID helper deferred
-    // (forms.zoho.com/js/zf_gclid_live.js) and then call into it from inline page code on a fixed
-    // 500ms timer: setTimeout(function(){ downloadHtmlGclid(); }, 500) -> g_c(GAd.indexValueArr[0]).
-    // When that third-party script has not executed within 500ms, g_c is undefined and the timer
-    // callback throws a ReferenceError with a first-party stack. Purely a network-timing race, so it
-    // is intermittent (~1 run in 3) — and confirmed PRE-EXISTING, not caused by any test change: a
-    // 3x/3x A-B on main vs branch flaked 2/3 on main and 1/3 on the branch. PDA is the ONLY store
-    // with this pattern; the other eight load zf_gclid.js but never call g_c from inline code, so
-    // they have no race. Low-severity and it fires for real users on slow connections too — only the
-    // GCLID attribution value is lost, the form itself submits normally. PDA devs notified: the fix
-    // is to hook the script's load event rather than guess a timer. See stores/pda.json _notes.
-    messagePattern: /g_c is not defined/,
+    // PDA injects Zoho's GCLID snippet SITE-WIDE — not only on the two form pages. Every page
+    // loads forms.zoho.com/js/zf_gclid_live.js `defer` and then, from inline page code, runs:
+    //     setTimeout(function(){ downloadHtmlGclid(); }, 500);
+    //     function downloadHtmlGclid() {
+    //       var gclid    = g_c(GAd.indexValueArr[0]);     // line A
+    //       var fieldobj = document.forms.form.zc_gad;    // line B
+    //       ...
+    //     }
+    // Both lines are unguarded, so that timer throws one of two errors depending on how the race
+    // lands. They are two arms of ONE defect, so one entry covers both:
+    //
+    //   A. "g_c is not defined" (ReferenceError) — the deferred helper had not executed within the
+    //      hardcoded 500ms. A pure network-timing race, hence intermittent (~1 run in 3), and
+    //      confirmed PRE-EXISTING: a 3x/3x A-B on main vs branch flaked 2/3 on main, 1/3 on branch.
+    //
+    //   B. "Cannot read properties of undefined (reading 'zc_gad')" (TypeError) — the helper DID
+    //      load in time, so execution reaches line B, where `document.forms.form` is undefined
+    //      because the page carries no <form name='form'>. Only /contactenos/ and /cotiza/ have one
+    //      (their Zoho forms); document.forms is keyed by name/id ONLY, and the theme's search
+    //      forms are class="form", not name="form". So on every other page — homepage, PLP, PDP,
+    //      category, search — arm B fires whenever arm A does not, which makes the throw
+    //      effectively UNCONDITIONAL there rather than a flake. Verified live Sept 17 2026 against
+    //      the served HTML: the snippet is present on /, /mas-vendidos/,
+    //      /productos/entrega-rapida-en-mexico/, a PDP and /search.php, and name='form' on none.
+    //
+    // Left unsuppressed, arm B fails whichever test happens to be running and wipes out PDA's
+    // discovery/homepage/plp/pdp signal wholesale. Low-severity for real users either way: the
+    // snippet's only job is to copy a gclid into a hidden field, and on a page with no form there
+    // is nothing to copy it into — no user-visible behaviour is lost. PDA is still the ONLY store
+    // that calls the helper from inline code (fleet homepage scan, Sept 17 2026); the other eight
+    // merely load the script. PDA devs notified: the fix is to hook the script's load event instead
+    // of guessing a 500ms timer, AND to null-guard document.forms.form (or stop injecting the
+    // snippet on pages that have no Zoho form). See stores/pda.json _notes.
+    messagePattern: /g_c is not defined|reading 'zc_gad'/,
   },
   {
     // Klaviyo (email-capture popup) is deliberately left loaded on the stores that use it (AAP, PDA,
@@ -276,6 +298,67 @@ export const KNOWN_BUGGY_SCRIPTS = [
 // (window:before:load), scoped to the jQuery+bestroofhatches.com ready channel. See that file.
 
 /**
+ * The one definition of "this text shows a price". Shared by the PDP/PLP price assertions and by
+ * isQuoteOnlyProduct() below — deliberately the same pattern in both, because if the detector's
+ * idea of a price ever drifted from the assertion's, a product could be judged priced and then
+ * fail the very assertion that judgement exempted it from (or vice versa).
+ */
+export const PRICE_PATTERN = /\$[\d,]+(\.\d{2})?/;
+
+/**
+ * Detects a "call for pricing" product at runtime, for the one PDP a spec has just visited.
+ *
+ * Big-ticket / freight-class SKUs (roof hatches, smoke vents, lead-lined doors) ship with no
+ * price, no qty input and no Add to Cart — just a product-info-request form — even inside
+ * catalogs that are otherwise fully priced. That is intentional business behaviour, not a site
+ * deficiency, and it is NOT a per-store fact, so it cannot live in stores/*.json the way
+ * pdp.quoteOnly (BRH's whole-catalog flag) does. Hence this per-visit runtime check.
+ *
+ * TWO conditions must BOTH hold, and the second is what keeps this honest:
+ *
+ *   1. The Add to Cart control is unavailable — either absent from the DOM (BESTCA, BRH) or
+ *      rendered but not visible. That second shape is CAD's and PDA's: the control exists and its
+ *      wrapper carries an inline <div id="add-to-cart-wrapper" style="display: none">
+ *      (server-rendered, so it is already in place when before() runs — no settle race).
+ *      Checking only for absence missed it until Sept 17 2026, when a random pdp.popular pick
+ *      landed on CAD's /22-x-30-lead-lined-access-door-karp/ and failed 3 tests per device — 12
+ *      in pdp.mobile.cy.js, which runs 4 devices against one picked URL.
+ *
+ *   2. AND the product shows no price. Without this the check is CIRCULAR: the test "Add to Cart
+ *      button is visible and not disabled" would be skipped on a condition derived from the very
+ *      thing it asserts, so it could never fail. A theme regression that hid the buy button on a
+ *      normal priced product would then report *pending* rather than *failing* — a green-looking
+ *      dashboard over a storefront that cannot take orders. Requiring "no price" keeps genuinely
+ *      quote-only products skipping while a PRICED product that lost its cart button fails, which
+ *      is the regression actually worth catching.
+ *
+ * Verified against the fleet Sept 17 2026: all four products whose cart control is absent or
+ * hidden (BESTCA's removable floor door, CAD's lead-lined Karp door, PDA's panel de acceso
+ * liviano, BRH's quad-door smoke vent) show NO price, so adding condition 2 changed nothing about
+ * which products skip — it only closed the circularity.
+ *
+ * KNOWN CONSEQUENCE, accepted deliberately: BigCommerce also hides Add to Cart for OUT-OF-STOCK
+ * items while still showing their price. Such a product now FAILS these assertions rather than
+ * skipping. That is a real storefront state rather than a code bug, so if a pdp.popular entry goes
+ * out of stock the fix is to swap the slug (or restock it), not to loosen this check back. The
+ * cy.task line below names that case explicitly so it is diagnosable straight from the run log.
+ */
+export function isQuoteOnlyProduct($body, addToCartSelector, priceSelector) {
+  const $cart = $body.find(addToCartSelector);
+  const cartUnavailable = $cart.length === 0 || !$cart.is(':visible');
+  if (!cartUnavailable) return false;
+
+  const priceText = $body.find(priceSelector).text();
+  if (PRICE_PATTERN.test(priceText)) {
+    // Cart gone but the product IS priced — a regression or an out-of-stock item, not a
+    // quote-only SKU. Say so loudly; the price/qty/cart assertions are about to run and fail.
+    cy.task('log', `[isQuoteOnlyProduct] cart unavailable but product shows a price (${priceText.trim().slice(0, 40)}) — NOT treating as quote-only; price/qty/cart assertions will run`);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Asserts the first `limit` product cards each have an image, title, link — and a $-price
  * when the store shows per-card prices. ADC's catalog interleaves priced and quote-only
  * (price-less) cards, so it sets plp.selectors.cardPrice to null to skip the price check.
@@ -287,7 +370,7 @@ export function assertProductCards(limit = 3) {
     cy.wrap($li).within(() => {
       cy.get(cardImage).should('exist').invoke('attr', 'src').should('not.be.empty');
       cy.get(cardTitle).invoke('text').should('not.be.empty');
-      if (cardPrice) cy.get(cardPrice).invoke('text').should('match', /\$[\d,]+(\.\d{2})?/);
+      if (cardPrice) cy.get(cardPrice).invoke('text').should('match', PRICE_PATTERN);
       cy.get(cardLink)
         .first()
         .invoke('attr', 'href')

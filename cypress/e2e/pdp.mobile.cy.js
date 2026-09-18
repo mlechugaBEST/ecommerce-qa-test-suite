@@ -17,6 +17,8 @@ import {
   assertNoHorizontalOverflow,
   assertMaxTouchTarget,
   blockThirdParty,
+  isQuoteOnlyProduct,
+  PRICE_PATTERN,
   makeConsoleErrorSpy,
   pickRandom,
 } from '../support/checks.js';
@@ -51,7 +53,7 @@ ALL_DEVICES.forEach(({ name, width, height, touchTarget }) => {
       cy.log(`**PDP under test:** ${pdpUrl}`);
       cy.visit(pdpUrl, { onBeforeLoad: consoleErrors.onBeforeLoad });
       cy.get('body').then(($body) => {
-        quoteOnlyProduct = $body.find(sel.addToCart).length === 0;
+        quoteOnlyProduct = isQuoteOnlyProduct($body, sel.addToCart, sel.price);
         if (quoteOnlyProduct) {
           cy.task('log', `[pdp.mobile.cy.js] detected quote-only product (${name}), skipping price/qty/cart/lead-time: ${pdpUrl}`);
         }
@@ -85,7 +87,7 @@ ALL_DEVICES.forEach(({ name, width, height, touchTarget }) => {
 
     it('displays a sale price', function () {
       if ((site.pdp && site.pdp.quoteOnly) || quoteOnlyProduct) return this.skip();
-      cy.get(sel.price).invoke('text').should('match', /\$[\d,]+(\.\d{2})?/);
+      cy.get(sel.price).invoke('text').should('match', PRICE_PATTERN);
     });
 
     it('shows at least one product image with a valid src', () => {

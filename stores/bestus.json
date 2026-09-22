@@ -150,6 +150,7 @@
         "note": "'Is this a construction site address? (Required)' — answering No. A BigCommerce custom shipping field: it carries NO `required` HTML attribute, only '(Required)' in its label text, so nothing in the DOM marks it mandatory — but leaving it blank silently stops the carrier quote and no shipping options ever render."
       }
     ],
+    "suppressAddressSwitchInlineErrors": true,
     "consoleIgnore": null,
     "selectors": null,
     "placeOrder": true

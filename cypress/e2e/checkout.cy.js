@@ -313,9 +313,13 @@ describeIfStore(checkout, 'Checkout (through to the payment step)', () => {
       // catches a shipping or tax component that renders in its own row yet never reaches the
       // amount the customer is charged.
       //
-      // NOTE subtotal is legitimately 0 here: the QA customer's group carries a price list that
-      // zeroes the product (listPrice/salePrice 0 against an originalPrice of 180.69), so the
-      // payable amount is shipping + tax. Do NOT "fix" this by asserting subtotal > 0.
+      // NO subtotal ASSERTION, ON PURPOSE. The IDENTITY is what is under test, not any one term,
+      // so it holds unchanged whatever the subtotal is. On BESTUS that subtotal is legitimately 0
+      // — the QA customer's group carries a price list zeroing the product (listPrice/salePrice 0
+      // against an originalPrice of 180.69), so what is payable is shipping + tax. A store whose
+      // QA group does not zero the product (BESTCA) reconciles identically with a non-zero
+      // subtotal. Do NOT "fix" either case by asserting on subtotal — that would encode one
+      // store's customer-group pricing into a spec all nine share.
       const parts = state.subtotal + state.shippingCostTotal + state.handlingCostTotal
         + state.taxTotal - state.totalDiscount;
       expect(Math.abs(parts - state.grandTotal),

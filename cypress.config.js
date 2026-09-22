@@ -42,7 +42,7 @@ const KNOWN_FORMS_KEYS = [
 const KNOWN_CHECKOUT_KEYS = [
   "path", "product", "quantity", "signInLinkText", "minShippingOptions",
   "newAddressLinkText", "addressSettleMs", "customFields", "consoleIgnore", "selectors",
-  "placeOrder",
+  "placeOrder", "suppressAddressSwitchInlineErrors",
 ];
 for (const key of Object.keys(site)) {
   if (!KNOWN_TOP_LEVEL_KEYS.includes(key)) {

@@ -247,7 +247,6 @@ const CHECKOUT_SELECTOR_DEFAULTS = {
   // but never as "which step am I on" — see continueBillingIfBlocking() in CheckoutPage for the
   // check that this fact invalidated.
   activeStepClass: 'active',
-  orderSummary: '.cart-section, aside.layout-cart',
 
   // Customer / sign-in step. The guest form is form#checkout-customer-guest; clicking the sign-in
   // link swaps it for form#checkout-customer-returning. Both forms use the SAME submit button id
@@ -376,6 +375,19 @@ const CHECKOUT_DEFAULTS = {
   // label TEXT ("(Required)"), never with a `required` attribute. Entries are
   // { selector, type: 'radio'|'checkbox'|'text'|'select', value? }.
   customFields: [],
+  // Whether chooseNewAddress() may swallow an error thrown from an INLINE script on this store's
+  // OWN /checkout document during the ~10s address-switch window. false is the honest default:
+  // that is a licence to ignore a FIRST-PARTY defect, so it is granted per store by someone who
+  // has actually read the error — exactly like consoleIgnore below. Only BESTUS sets it, for the
+  // jQuery handler its theme binds to the saved-address <li>s that reads .value off a null
+  // `input[name='shippingAddress.customFields.field_36']:checked`; a real customer hits it on the
+  // same click. The `Consignment not found` arm stays unconditional — that one is checkout-js
+  // racing itself, a BigCommerce platform behaviour identical on every storefront, not a store's
+  // own markup. This became a per-store flag when BESTCA was onboarded: BESTCA's /checkout carries
+  // its own inline defect (a stopFunction2 that recurses instead of calling clearInterval), whose
+  // stack matches the same inline-frame pattern, so a shared default would have handed a second
+  // store a silent licence to swallow a bug it had never looked at.
+  suppressAddressSwitchInlineErrors: false,
   // null, not [] — an un-triaged store must not silently inherit a console-error assertion that
   // nobody has actually looked at. null makes the console test skip with a reason.
   consoleIgnore: null,

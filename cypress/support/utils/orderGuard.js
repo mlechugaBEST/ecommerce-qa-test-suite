@@ -29,7 +29,8 @@ export function isPlaceOrder() {
 /** Skip reason for the armed suite on a normal run. Without one, describeIfStore would render
  *  "[skipped: not configured for BESTUS]" — factually wrong on a store that IS configured. */
 export const NOT_ARMED =
-  'order placement not armed — CLI only, run `npm run test:checkout-order`';
+  'order placement not armed — CLI only, run '
+  + '`npm run test:checkout-order:store -- <store> --spec "cypress/e2e/checkout.cy.js"`';
 
 // The window. Closed by default, closed again at the top of every test by e2e.js's beforeEach, and
 // opened only around the single click that submits.

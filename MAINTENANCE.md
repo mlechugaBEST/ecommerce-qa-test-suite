@@ -248,6 +248,14 @@ attempts a real sign-in with the literal string `REPLACE_ME`.
   falling through to a real card — but that is a stop, not a safety net you want to
   rely on. Top it up in the BigCommerce admin under the customer's **Store Credit**
   field. Every armed run logs the amount applied, so the trend is visible in the log.
+  **BESTCA also sets `checkout.placeOrder` as of Sept 22 2026**, so its QA customer
+  needs the same treatment — and note its product is *not* zeroed by a price list the
+  way BESTUS's is, so an order there costs the full CAD price plus shipping and tax,
+  not just the shipping and tax. Do **not** arm BESTCA until the `stopFunction2`
+  recursion on its `/checkout` page is fixed (see `stores/bestca.json` `_notes`): the
+  payment step throws `RangeError: Maximum call stack size exceeded` roughly once a
+  second, so an armed run can fail *after* submitting — exactly the ambiguous state
+  §8b warns about, where you must check the admin before re-running.
 - No admin rights. Assume the password is recoverable from a browser context on a
   live storefront that loads third-party scripts, and make that not matter.
 - **The address book is shared, and the spec must never add to it.** `checkout.cy.js`
@@ -271,24 +279,55 @@ remediation.
 
 ### Onboarding store #2 through #9
 
-Only after BESTUS is green, and one store at a time:
+Only after BESTUS is green, and one store at a time. **BESTCA was done this way on
+Sept 22 2026** and is the worked example; steps 1–3 below need no browser at all.
 
 1. Confirm a QA customer account exists on that storefront; add it to the password
    manager and to `credentials.json`.
-2. Verify live a `checkout.product` slug that is priced, in stock, option-free and
+2. **Read the custom checkout fields off the store, do not guess them.**
+   `GET /api/storefront/form-fields` is public, unauthenticated, and safe with a
+   wildcard `Accept`. It lists every `billingAddress` / `shippingAddress` field with
+   its real `required` flag, `fieldType` and `options.items` — which is exactly what
+   `checkout.customFields` needs, and it is the source the DOM is **not**: it reports
+   BESTUS's `field_36` as `required: true` even though the markup carries no
+   `required` attribute at all. A radio field renders as
+   `#field_<id>Input-<zero-based index into options.items>` — which is how BESTUS's
+   committed `#field_36Input-1` resolves to "No". BESTCA's two custom fields both came
+   back `required: false`, so its `customFields` is `[]`, established before anyone
+   signed in. Skipping this step is how you end up debugging a 60s timeout on the
+   *shipping options*, which points at entirely the wrong thing.
+3. Verify a `checkout.product` slug that is priced, in stock, option-free and
    parcel-shippable. This is a **stricter** contract than `products.known` /
    `pdp.popular` — a call-for-pricing or freight-only SKU quotes zero shipping
-   options and stalls the flow.
-3. Fill the `checkout` section per `stores/bestus.json`, replacing the `_todo`.
-4. Run the spec. Expect to calibrate two things per store: `checkout.selectors`
-   (theme drift) and `checkout.customFields` (store-specific required checkout
-   fields — BigCommerce marks these required only in the label TEXT, never with a
-   `required` attribute, and a missed one silently stops the carrier quote).
-5. Leave `consoleIgnore: null` until the console noise is actually triaged.
+   options and stalls the flow. `BCData.product_attributes` is inlined in every PDP
+   and gives `purchasable`, `instock`, `call_for_price_message`, price and sku in one
+   grep. **"Option-free" means the `data-cart-item-add` form's inputs, not the
+   rendered page**: BESTUS's product looks ordinary in a browser but carries a
+   `required` 8-option radio group `attribute[6204]`, which is why it adds two
+   physical line items and why a raw `POST /api/storefront/carts` with no
+   `optionSelections` is rejected as "requires modifier options". Count the
+   `<input name="attribute[...]">` elements; zero is what you want.
+4. Fill the `checkout` section per `stores/bestus.json`, replacing the `_todo`.
+5. Run the spec. `checkout.selectors` (theme drift) is now the main thing left to
+   calibrate live. Two keys worth knowing about before you meet them:
+   `selectors.storeCreditCheckbox` should be set to `null` unless that store's QA
+   customer actually holds store credit — BigCommerce renders `#useStoreCredit` only
+   for a customer who has some, and `assertPaymentOptions()` asserts it exists on the
+   ordinary unarmed path. And `suppressAddressSwitchInlineErrors` stays `false` until
+   you have read an actual `[CheckoutPage] storefront error on the "new address"
+   click` line in the log and confirmed the defect is the store's own theme.
+6. Leave `consoleIgnore: null` until the console noise is actually triaged.
+7. Run it **twice back to back** and compare the `address book holds N saved
+   address(es)` lines. N must be identical. Note BESTCA's "Save this address in my
+   address book" ships **checked** where BESTUS's ships unchecked, so on some themes
+   `ensureSaveAddressUnchecked()` is the only thing standing between a shared account
+   and one new address per run.
 
 Two stores need a judgement call first: **BRH** is `pdp.quoteOnly` with no Add to
-Cart anywhere, so it may have no checkout journey at all; **PDA**'s catalog is four
-placeholder products. Verify live before assuming either way.
+Cart anywhere, so it may have no checkout journey at all; **PDA** is Spanish, and
+`placeOrder.js` carries two English-only strings (the "Payment is not required"
+overlay text and `ORDER_NUMBER_RE`) that would need making configurable before it
+could be armed.
 
 ### 8b. The armed order test, and the manual cleanup it creates
 
@@ -297,7 +336,12 @@ is skipped on every ordinary run and cannot be started from the launchers or the
 Dashboard. Arming it takes three things at once:
 
 1. `PLACE_ORDER=true` **and** `I_KNOW_THIS_PLACES_ORDERS=true` in the **parent process
-   environment** — `npm run test:checkout-order` sets both. A `cypress.env.json`,
+   environment** — `npm run test:checkout-order:store -- <store> --spec
+   "cypress/e2e/checkout.cy.js"` sets both and names the store explicitly (it routes
+   through `scripts/run-store.js`, which sets `STORE` in the child env). The older
+   `npm run test:checkout-order` still works but takes its store from whatever `STORE`
+   happens to be in the environment, defaulting to bestus — fine when BESTUS was the
+   only armed store, ambiguous now that it is not. A `cypress.env.json`,
    a `CYPRESS_`-prefixed variable or `--env` on the command line will **not** arm it:
    `cypress.config.js` re-asserts both flags from `process.env` inside `setupNodeEvents`,
    whose returned config wins over all three. (Falsified: with an armed `cypress.env.json`

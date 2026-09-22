@@ -276,7 +276,10 @@ export class CheckoutPage {
    * global, permanent, and would blind this suite to exactly what it exists to catch. So this
    * suppression is gated on `switchingAddress`, a flag set immediately before the click and
    * cleared as soon as the new form appears (at most ~10s), and the error is additionally
-   * required to carry an inline frame on a /checkout document. Cypress also removes the handler at the end
+   * required to carry an inline frame on a /checkout document — and, for (2) ONLY, on the store
+   * having opted in via `checkout.suppressAddressSwitchInlineErrors`. Arm (2) suppresses a
+   * FIRST-PARTY theme defect, so it is per-store config; arm (1) is a checkout-js platform race
+   * and stays shared. Cypress also removes the handler at the end
    * of the test. Anything outside that window, or from anywhere else, falls through to the global
    * handler in e2e.js and fails the test as normal.
    */
@@ -289,7 +292,11 @@ export class CheckoutPage {
       if (!this.switchingAddress) return undefined;
       const known = /consignment not found/i.test(err.message)
         // An inline-script frame on the /checkout document itself, e.g. "/checkout:956:71".
-        || /\/checkout:\d+:\d+/.test(err.stack || '');
+        // PER-STORE AND OFF BY DEFAULT: this arm covers a defect in the store's OWN theme, so a
+        // newly-onboarded store goes red on its own inline bug and has it triaged, rather than
+        // inheriting BESTUS's licence to swallow it. See checkout.suppressAddressSwitchInlineErrors.
+        || (this.cfg.suppressAddressSwitchInlineErrors
+          && /\/checkout:\d+:\d+/.test(err.stack || ''));
       if (!known) return undefined;
       // Cypress wraps an app error's real message inside its own "The following error originated
       // from your application code…" preamble, with the actual text on a "  > …" line. Pull that
@@ -630,8 +637,12 @@ export class CheckoutPage {
         .should('have.length.at.least', 1);
     }
     if (this.sel.storeCreditCheckbox) {
-      // Presence, not checked-state: an account with no credit left still renders the payment step
-      // perfectly well, and that is placeOrder.js's problem to refuse, not this test's to fail on.
+      // Presence, not checked-state: HOW MUCH credit is left is placeOrder.js's problem to refuse,
+      // not this test's to fail on. But BigCommerce renders this control only for a customer who
+      // holds store credit AT ALL, so on a store whose QA customer has none it is simply absent
+      // and this hard-fails a test that has nothing to do with store credit. The fix there is
+      // `checkout.selectors.storeCreditCheckbox: null` — the key is nullable for exactly this —
+      // not weakening the check on the stores that do arm order placement.
       cy.get(this.sel.storeCreditCheckbox).should('exist').then(($box) => {
         const label = $box.siblings(`label[for="${$box.attr('id')}"]`).text().trim();
         cy.task('log',

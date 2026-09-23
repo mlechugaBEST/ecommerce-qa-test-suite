@@ -248,14 +248,20 @@ attempts a real sign-in with the literal string `REPLACE_ME`.
   falling through to a real card — but that is a stop, not a safety net you want to
   rely on. Top it up in the BigCommerce admin under the customer's **Store Credit**
   field. Every armed run logs the amount applied, so the trend is visible in the log.
-  **BESTCA also sets `checkout.placeOrder` as of Sept 22 2026**, so its QA customer
-  needs the same treatment — and note its product is *not* zeroed by a price list the
-  way BESTUS's is, so an order there costs the full CAD price plus shipping and tax,
-  not just the shipping and tax. Do **not** arm BESTCA until the `stopFunction2`
-  recursion on its `/checkout` page is fixed (see `stores/bestca.json` `_notes`): the
-  payment step throws `RangeError: Maximum call stack size exceeded` roughly once a
-  second, so an armed run can fail *after* submitting — exactly the ambiguous state
-  §8b warns about, where you must check the admin before re-running.
+  **BESTCA also sets `checkout.placeOrder` as of Sept 22 2026**, but it needs *different*
+  treatment, not the same. Measured live Sept 23 2026 (correcting an earlier assumption
+  here that it would cost the full CAD price): BESTCA's QA customer group zeroes the
+  product exactly as BESTUS's does (`listPrice`/`salePrice` 0 against `originalPrice`
+  57.99) **and** is offered a genuine `type: "freeshipping"` option, so its checkout
+  totals `subtotal 0 + shipping 0 + tax 0 = grand 0`. An order there costs nothing and
+  consumes no store credit, so there is nothing to top up. That is not purely good news:
+  `placeOrder.js`'s three interlocks were built around a nonzero balance fully covered by
+  credit, and at a $0 total that premise no longer holds. `isStoreCreditApplied` does
+  read `true` with `outstandingBalance` 0, so interlock 2 would pass — but whether the
+  `[data-test="payment-store-credit-overlay"]` ("Payment is not required for this order.")
+  still renders when no credit is actually being spent is **unverified**, and that overlay
+  is the interlock standing between the click and a real card. Re-verify all three
+  against a live BESTCA payment step before ever running an armed order there.
 - No admin rights. Assume the password is recoverable from a browser context on a
   live storefront that loads third-party scripts, and make that not matter.
 - **The address book is shared, and the spec must never add to it.** `checkout.cy.js`
@@ -309,13 +315,27 @@ Sept 22 2026** and is the worked example; steps 1–3 below need no browser at a
    `<input name="attribute[...]">` elements; zero is what you want.
 4. Fill the `checkout` section per `stores/bestus.json`, replacing the `_todo`.
 5. Run the spec. `checkout.selectors` (theme drift) is now the main thing left to
-   calibrate live. Two keys worth knowing about before you meet them:
-   `selectors.storeCreditCheckbox` should be set to `null` unless that store's QA
-   customer actually holds store credit — BigCommerce renders `#useStoreCredit` only
-   for a customer who has some, and `assertPaymentOptions()` asserts it exists on the
-   ordinary unarmed path. And `suppressAddressSwitchInlineErrors` stays `false` until
-   you have read an actual `[CheckoutPage] storefront error on the "new address"
-   click` line in the log and confirmed the defect is the store's own theme.
+   calibrate live. Three keys worth knowing about before you meet them:
+   **`selectors.activeStepClass`** is per-checkout-js-build, not universal — BESTUS
+   uses `active` (cumulative, all four steps carry it by the end) while BESTCA never
+   emits `active` at all and uses `checkout-step--current` (exactly one step, moving).
+   Getting it wrong looks like a 60s timeout in `assertPaymentStep()` on a funnel that
+   in fact completed perfectly, so **dump every step container's `className` at each
+   stage** rather than inferring it from the failure.
+   **`selectors.storeCreditCheckbox`** should be `null` unless that store's QA customer
+   actually holds store credit — BigCommerce renders `#useStoreCredit` only for a
+   customer who has some, and `assertPaymentOptions()` asserts it exists on the
+   ordinary unarmed path. Do **not** null `storeCreditOverlay` to match: that one is an
+   interlock `placeOrder.js` depends on.
+   **`suppressAddressSwitchInlineErrors`** stays `false` until you have read an actual
+   `[CheckoutPage] storefront error on the "new address" click` line in the log and
+   confirmed the defect is the store's own theme.
+
+   Expect to meet these **one at a time**, each hidden behind the last: on BESTCA a
+   theme `RangeError` fired ~1s into `assertPaymentStep()`'s retry window and masked
+   the `activeStepClass` drift entirely, which in turn masked the `storeCreditCheckbox`
+   one. Budget for three or four red runs, and re-read the log each time rather than
+   assuming the previous diagnosis still explains the new failure.
 6. Leave `consoleIgnore: null` until the console noise is actually triaged.
 7. Run it **twice back to back** and compare the `address book holds N saved
    address(es)` lines. N must be identical. Note BESTCA's "Save this address in my

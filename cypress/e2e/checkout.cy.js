@@ -302,10 +302,26 @@ describeIfStore(checkout, 'Checkout (through to the payment step)', () => {
       expect(state.cart.lineItems.physicalItems,
         'the basket reaching payment is the one this spec built').to.have.length(cartLineItems);
 
-      // A shipped order with no carrier cost means the quote silently fell out.
-      expect(state.shippingCostTotal, 'shipping was quoted and carried into the total')
-        .to.be.greaterThan(0);
-      expect(state.grandTotal, 'the order has a payable total').to.be.greaterThan(0);
+      // What this really tests is that the shipping method the spec selected reached the payable
+      // amount — NOT that shipping costs money. An earlier `shippingCostTotal > 0` was a proxy for
+      // that, and a BESTUS-shaped one: BESTCA's QA customer group is offered a genuine
+      // `type: "freeshipping"` option, so a perfectly healthy funnel there quotes exactly 0 and the
+      // proxy failed on it. Comparing against the selected option's OWN cost is store-agnostic and
+      // strictly stronger — it still catches the failure the proxy existed for, a quote that
+      // renders in the UI and silently never reaches the total.
+      //
+      // Deliberately above the usingSavedAddress guard below: unlike the address checks, this one
+      // holds whether or not the spec typed the address itself.
+      const shippingOption = ((state.consignments || [])[0] || {}).selectedShippingOption;
+      expect(shippingOption, 'a shipping method is selected server-side')
+        .to.include.keys('id', 'description', 'cost');
+      expect(state.shippingCostTotal, "the selected shipping option's cost reached the total")
+        .to.be.closeTo(shippingOption.cost, 0.005);
+      // Not `> 0`. On a store whose customer group zeroes both the product and shipping (BESTCA)
+      // a correct checkout is legitimately payable-zero, so a positive total is one store's
+      // pricing, not a property of checkout. The reconciliation identity below is what actually
+      // proves the totals were computed; this only rules out a missing or NaN field.
+      expect(state.grandTotal, 'the order has a numeric total').to.be.a('number').and.be.at.least(0);
       expect(state.taxTotal, 'tax is a number, not absent').to.be.at.least(0);
 
       // Totals reconcile. Verified live to hold exactly on BESTUS (0 + 26.04 + 0 + 2.15 - 0 =
@@ -339,10 +355,8 @@ describeIfStore(checkout, 'Checkout (through to the payment step)', () => {
       expect(consignment.address.postalCode, 'ships to the postcode this spec typed')
         .to.equal(persona.zip);
       expect(consignment.address.city, 'ships to the city this spec typed').to.equal(persona.city);
-      // selectShippingMethod() checked a radio; this is proof the selection reached the server
-      // rather than only the DOM.
-      expect(consignment.selectedShippingOption, 'a shipping method is selected server-side')
-        .to.include.keys('id', 'description');
+      // (The proof that selectShippingMethod()'s radio reached the server rather than only the DOM
+      // now lives above, with the shipping-cost check it shares a source with.)
     });
   }, NO_CHECKOUT_CREDENTIALS);
 
